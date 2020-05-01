@@ -1,8 +1,10 @@
 BeautifulSoup4
+dogtail
 ebooklib
 keyring
 lxml
 Pillow
+pycairo
 pyenchant
 pygobject
 # pygtkspelaplcheck

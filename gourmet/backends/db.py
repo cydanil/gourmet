@@ -1540,7 +1540,7 @@ class RecData (Pluggable, BaseException):
             elif group_order[x[0]] == group_order[y[0]]: return 0
             else: return -1
         alist=list(groups.items())
-        alist.sort(sort_groups)
+        sorted(alist, key=lambda x, y: sort_groups(x, y))
         def sort_ings (x,y):
             if x.position > y.position: return 1
             elif x.position == y.position: return 0

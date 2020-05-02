@@ -1,31 +1,32 @@
-from . import old_test  # get ../lib/ in path
+from tempfile import TemporaryDirectory
+import traceback
+import sys
+
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+from gi.repository import Gtk  # noqa: import not a top of file
 
-from gourmet import gglobals
-gglobals.gourmetdir = '/tmp/'
-gglobals.dbargs['file'] = '/tmp/recipes.db'
+from gourmet import gglobals  # noqa: import not at top
+from gourmet.reccard import add_with_undo, RecCard  # noqa: import not at top
+
 
 VERBOSE = True
 
-from gourmet import GourmetRecipeManager
-from gourmet.reccard import add_with_undo
 
-def assert_with_message (callable,
-                         description):
+def assert_with_message(callable_, description):
     try:
-        assert(callable())
+        assert(callable_())
     except AssertionError:
-        print('FAILED:',description)
+        print('FAILED:', description)
         raise
     else:
         if VERBOSE:
-            print('SUCCEEDED:',description)
+            print('SUCCEEDED:', description)
 
-def add_save_and_check (rc, lines_groups_and_dc):
+
+def add_save_and_check(rc, lines_groups_and_dc):
     added = []
-    for l,g,dc in lines_groups_and_dc:
+    for l, g, dc in lines_groups_and_dc:
         # add_with_undo is what's called by any of the ways a user can add an ingredient.
         add_with_undo(
             rc,
@@ -38,6 +39,7 @@ def add_save_and_check (rc, lines_groups_and_dc):
     check_ings([i[2] for i in lines_groups_and_dc],ings)
     #print 'add_save_and_check.return:',lines_groups_and_dc,'->',added
     return added
+
 
 def check_ings (check_dics,ings):
     """Given a list of dictionaries of properties to check and
@@ -63,6 +65,7 @@ def check_ings (check_dics,ings):
                 raise
         n -= 1
 
+
 def test_ing_editing (rc):
     """Handed a recipe card, test ingredient editing"""
     # Add some ingredients in a group...
@@ -87,6 +90,7 @@ def test_ing_editing (rc):
     if VERBOSE: print("Ingredient editing successful")
     return g
 
+
 def test_ing_undo (rc):
     rc.show_edit(tab=rc.NOTEBOOK_ING_PAGE)
     ings_groups_and_dcs = [
@@ -102,7 +106,7 @@ def test_ing_undo (rc):
     #            for r in refs]
     rc.ingtree_ui.ingController.delete_iters(
         *[rc.ingtree_ui.ingController.get_iter_from_persistent_ref(r)
-         for r in refs]
+          for r in refs]
         )
     #print 'test_ing_undo - just deleted - UNDO HISTORY:',rc.history
     # Saving our edits...
@@ -133,6 +137,7 @@ def test_ing_undo (rc):
         )
     if VERBOSE: print('Undeletion worked!')
 
+
 def test_ing_group_editing (rc):
     rc.show_edit(tab=rc.NOTEBOOK_ING_PAGE)
     # We rely on the first item being a group
@@ -148,6 +153,7 @@ def test_ing_group_editing (rc):
     ings = rc.rd.get_ings(rc.current_rec)
     assert(ings[0].inggroup != 'New Foo') # Make sure our new group got un-done
     if VERBOSE: print('Undo of group change worked.')
+
 
 def test_undo_save_sensitivity (rc):
     rc.show_edit(tab=rc.NOTEBOOK_ATTR_PAGE)
@@ -233,27 +239,29 @@ def test_undo_save_sensitivity (rc):
             raise
         if VERBOSE: print('DONE TESTING %s'%widget)
 
-rg = GourmetRecipeManager.RecGui()
-rg.newRecCard()
-while Gtk.events_pending(): Gtk.main_iteration()
-rec_id,rec_card = list(rg.rc.items())[0]
-
-try:
-    test_ing_editing(rec_card)
-    print('Ing Editing works!')
-    test_ing_undo(rec_card)
-    print('Ing Undo works!')
-    test_undo_save_sensitivity(rec_card)
-    print('Undo properly sensitizes save widget.')
-    test_ing_group_editing(rec_card)
-    print('Ing Group Editing works.')
-except:
-    import traceback; traceback.print_exc()
-    Gtk.main()
-else:
-    rec_card.hide()
-    import sys
-    sys.exit()
+## >>>
+## TODO: Create a new card here, from the main gui
+## <<<
+# while Gtk.events_pending(): Gtk.main_iteration()
+# rec_id,rec_card = list(rg.rc.items())[0]
 
 
+with TemporaryDirectory(prefix='gourmet_', suffix='_test_reccard') as tmpdir:
+    gglobals.gourmetdir = tmpdir
+    rec_card = RecCard()
 
+    try:
+        test_ing_editing(rec_card)
+        print('Ing Editing works!')
+        test_ing_undo(rec_card)
+        print('Ing Undo works!')
+        test_undo_save_sensitivity(rec_card)
+        print('Undo properly sensitizes save widget.')
+        test_ing_group_editing(rec_card)
+        print('Ing Group Editing works.')
+    except AssertionError:
+        traceback.print_exc()
+        Gtk.main()
+    else:
+        rec_card.hide()
+        sys.exit()

@@ -228,7 +228,6 @@ class StarButton (Gtk.Button):
         keyboard.
 
         """
-        self.__gobject_init__()
         self.add_events(Gdk.EventMask.KEY_PRESS_MASK)
         self.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
         self.connect('button-press-event',

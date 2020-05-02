@@ -15,9 +15,12 @@
 ### along with this library; if not, write to the Free Software
 ### Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301
 ### USA
-
+from typing import Union
+import gi
+gi.require_versions({"Gtk": "3.0", "Pango": "1.0"})
 from gi.repository import Pango
 from gi.repository import Gtk
+from gi.repository import GObject
 import xml.sax.saxutils
 from gourmet.gdebug import debug
 
@@ -77,22 +80,27 @@ class PangoBuffer (Gtk.TextBuffer):
         #self.set_text(txt)
         GObject.GObject.__init__(self)
 
-    def set_text (self, txt):
+    def set_text (self, txt: Union[str, bytes]):
+        if isinstance(txt, bytes):
+            txt = txt.decode()
         Gtk.TextBuffer.set_text(self,"")
         try:
-            self.parsed,self.txt,self.separator = Pango.parse_markup(txt,'\x00')
-        except:
-            print('Problem encountered escaping text: "%s"'%txt)
+            # XXX: self.txt has changed type here, verify that it's what the class expects
+            # TODO: Getting an AttributeError here: "InteractivePangoBuffer object has not attribute self"; ???
+            self.parsed, self.attrList, self.txt, self.self.separator = Pango.parse_markup(txt, -1, '\x00')
+        except Exception as e:  # Pango getting unescaped txt text (g-markup-error-quark), eg. contains &amp
+            print(f"Problem encountered escaping text: {txt}: {e}")
             import traceback; traceback.print_exc()
             txt=xml.sax.saxutils.escape(txt)
-            self.parsed,self.txt,self.separator = Pango.parse_markup(txt,'\x00')
-        self.attrIter = self.parsed.get_iterator()
+            self.parsed, self.attrList, self.txt, self.separator = Pango.parse_markup(txt, -1, '\x00')
+
+        self.attrIter = self.attrList.get_iterator()
         self.add_iter_to_buffer()
         while next(self.attrIter):
             self.add_iter_to_buffer()
 
     def add_iter_to_buffer (self):
-        range=self.attrIter.range()
+        range = len(self.attrIter)
         font,lang,attrs = self.attrIter.get_font()
         tags = self.get_tags_from_attrs(font,lang,attrs)
         text = self.txt[range[0]:range[1]]
@@ -308,7 +316,7 @@ class InteractivePangoBuffer (PangoBuffer):
     def setup_widget_from_pango (self, widg, markupstring):
         """setup widget from a pango markup string"""
         #font = Pango.FontDescription(fontstring)
-        a,t,s = Pango.parse_markup(markupstring,'\x00')
+        _, a, t, s = Pango.parse_markup(markupstring, -1, '\x00')
         ai=a.get_iterator()
         font,lang,attrs=ai.get_font()
         return self.setup_widget(widg,font,attrs)

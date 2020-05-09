@@ -1,7 +1,6 @@
 import difflib, re
 from gi.repository import Gtk
 
-from build.lib.gourmet.Undo import UndoHistoryList
 from gourmet.gdebug import debug
 
 class TooManyChanges (Exception):
@@ -209,7 +208,7 @@ class UndoableTextChange (UndoableObject):
 
 
 class UndoableTextContainer:
-    def __init__ (self, container: Gtk.Widget, history: UndoHistoryList):
+    def __init__ (self, container: Gtk.Widget, history):  # history: HistoryList
         self.history = history
         self.container = container
         self.setup_widgets()
@@ -269,7 +268,7 @@ class UndoableTextContainer:
     def set_text (self,txt,cursor_index): raise NotImplementedError
 
 class UndoableEntry (UndoableTextContainer):
-    def __init__(self, entry: Gtk.Widget, history: UndoHistoryList):
+    def __init__(self, entry: Gtk.Widget, history):  # history: UndoHistoryList
         self.entry = entry
         if isinstance(entry, Gtk.ComboBoxText):
             self.get_text = entry.get_active_text()

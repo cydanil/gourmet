@@ -100,12 +100,20 @@ class PangoBuffer (Gtk.TextBuffer):
             self.add_iter_to_buffer()
 
     def add_iter_to_buffer (self):
-        range = len(self.attrIter)
-        font,lang,attrs = self.attrIter.get_font()
-        tags = self.get_tags_from_attrs(font,lang,attrs)
-        text = self.txt[range[0]:range[1]]
-        if tags: self.insert_with_tags(self.get_end_iter(),text,*tags)
-        else: self.insert_with_tags(self.get_end_iter(),text)
+        start, end = self.attrIter.range()
+        tags = None
+        ret = self.attrIter.get_font(Pango.FontDescription.new(), None, None)
+        if ret is not None:
+            font, lang, attrs = ret
+            tags = self.get_tags_from_attrs(font, lang, attrs)
+
+        text = self.txt[start:end]
+
+        if tags:
+            self.insert_with_tags(self.get_end_iter(),text,*tags)
+        else:
+            item = self.get_end_iter()
+            self.insert_with_tags(item, text)
 
     def get_tags_from_attrs (self, font,lang,attrs):
         tags = []

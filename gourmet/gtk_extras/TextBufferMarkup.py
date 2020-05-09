@@ -87,7 +87,7 @@ class PangoBuffer (Gtk.TextBuffer):
         try:
             # XXX: self.txt has changed type here, verify that it's what the class expects
             # TODO: Getting an AttributeError here: "InteractivePangoBuffer object has not attribute self"; ???
-            self.parsed, self.attrList, self.txt, self.self.separator = Pango.parse_markup(txt, -1, '\x00')
+            self.parsed, self.attrList, self.txt, self.separator = Pango.parse_markup(txt, -1, '\x00')
         except Exception as e:  # Pango getting unescaped txt text (g-markup-error-quark), eg. contains &amp
             print(f"Problem encountered escaping text: {txt}: {e}")
             import traceback; traceback.print_exc()
@@ -96,24 +96,21 @@ class PangoBuffer (Gtk.TextBuffer):
 
         self.attrIter = self.attrList.get_iterator()
         self.add_iter_to_buffer()
-        while next(self.attrIter):
+        while self.attrIter.next():
             self.add_iter_to_buffer()
 
     def add_iter_to_buffer (self):
         start, end = self.attrIter.range()
-        tags = None
+        tags = []
         ret = self.attrIter.get_font(Pango.FontDescription.new(), None, None)
         if ret is not None:
             font, lang, attrs = ret
             tags = self.get_tags_from_attrs(font, lang, attrs)
 
-        text = self.txt[start:end]
-
-        if tags:
-            self.insert_with_tags(self.get_end_iter(),text,*tags)
-        else:
-            item = self.get_end_iter()
-            self.insert_with_tags(item, text)
+        # Insert the text at the location given by item.
+        text = self.txt[start:end]  # should be utf-8 string
+        item = self.get_end_iter()  # should be a Gtk.TextIter
+        self.insert_with_tags(item,text,*tags)
 
     def get_tags_from_attrs (self, font,lang,attrs):
         tags = []
@@ -269,7 +266,7 @@ class PangoBuffer (Gtk.TextBuffer):
     def get_selection (self):
         bounds = self.get_selection_bounds()
         if not bounds:
-            iter=self.get_iter_at_mark(self.insert)
+            iter=self.get_iter_at_mark(self.insert_)
             if iter.inside_word():
                 start_pos = iter.get_offset()
                 iter.forward_word_end()
@@ -315,7 +312,7 @@ class InteractivePangoBuffer (PangoBuffer):
         if normal_button: normal_button.connect('clicked',lambda *args: self.remove_all_tags())
         self.tag_widgets = {}
         self.internal_toggle = False
-        self.insert = self.get_insert()
+        self.insert_ = self.get_insert()
         self.connect('mark-set',self._mark_set_cb)
         self.connect('changed',self._changed_cb)
         for w,tup in toggle_widget_alist:
@@ -326,7 +323,11 @@ class InteractivePangoBuffer (PangoBuffer):
         #font = Pango.FontDescription(fontstring)
         _, a, t, s = Pango.parse_markup(markupstring, -1, '\x00')
         ai=a.get_iterator()
-        font,lang,attrs=ai.get_font()
+        ret = ai.get_font(Pango.FontDescription(), None, None)
+        if ret is not None:
+            font, lang, attrs = ret
+        else:
+            font = lang = attrs = None
         return self.setup_widget(widg,font,attrs)
 
     def setup_widget (self, widg, font, attr):
@@ -366,7 +367,7 @@ class InteractivePangoBuffer (PangoBuffer):
         # If our insertion point has a mark, we want to apply the tag
         # each time the user types...
         old_itr = self.get_iter_at_mark(self.last_mark)
-        insert_itr = self.get_iter_at_mark(self.insert)
+        insert_itr = self.get_iter_at_mark(self.insert_)
         if old_itr!=insert_itr:
             # Use the state of our widgets to determine what
             # properties to apply...

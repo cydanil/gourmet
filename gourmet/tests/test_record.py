@@ -69,7 +69,7 @@ def check_ings (check_dics,ings):
 def test_ing_editing (rc):
     """Handed a recipe card, test ingredient editing"""
     # Add some ingredients in a group...
-    rc.show_edit(tab=rc.NOTEBOOK_ING_PAGE)
+    rc.show_edit('ingredients')
     g = rc.ingtree_ui.ingController.add_group('Foo bar')
     if VERBOSE: print("Testing ingredient editing - add 4 ingredients to a group.")
     add_save_and_check(

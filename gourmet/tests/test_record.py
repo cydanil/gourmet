@@ -66,29 +66,33 @@ def check_ings (check_dics,ings):
         n -= 1
 
 
-def test_ing_editing (rc):
+def test_ing_editing(rec_card):
     """Handed a recipe card, test ingredient editing"""
-    # Add some ingredients in a group...
-    rc.show_edit('ingredients')
-    g = rc.ingtree_ui.ingController.add_group('Foo bar')
-    if VERBOSE: print("Testing ingredient editing - add 4 ingredients to a group.")
+    # Show the ingredients tab
+    rec_card.show_edit('ingredients')
+
+    # Create an new ingredient group
+    i_controller = rec_card.recipe_editor.modules[1].ingtree_ui.ingController
+    i_group = i_controller.add_group('Foo bar')
+    if VERBOSE:
+        print("Testing ingredient editing - add 4 ingredients to a group.")
     add_save_and_check(
-        rc,
-        [['1 c. sugar',g,
+        rec_card,
+        [['1 c. sugar', i_group,
          {'amount':1,'unit':'c.','item':'sugar','inggroup':'Foo bar'}
          ],
-        ['1 c. silly; chopped and sorted',g,
+        ['1 c. silly; chopped and sorted', i_group,
          {'amount':1,'unit':'c.','ingkey':'silly','inggroup':'Foo bar'},
          ],
-        ['1 lb. very silly',g,
+        ['1 lb. very silly', i_group,
          {'amount':1,'unit':'lb.','item':'very silly','inggroup':'Foo bar'},
          ],
-        ['1 tbs. extraordinarily silly',g,
+        ['1 tbs. extraordinarily silly', i_group,
          {'amount':1,'unit':'tbs.','item':'extraordinarily silly','inggroup':'Foo bar'}
          ],]
         )
-    if VERBOSE: print("Ingredient editing successful")
-    return g
+    if VERBOSE:
+        print("Ingredient editing successful")
 
 
 def test_ing_undo (rc):

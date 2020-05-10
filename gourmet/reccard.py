@@ -835,8 +835,8 @@ class RecEditor (WidgetSaver.WidgetPrefs, plugin_loader.Pluggable):
 
     def __init__ (self, reccard, rg, recipe=None, recipe_display=None, new=False):
         self.edited = False
-        self.editor_module_classes = [
-            DescriptionEditorModule,
+        self.editor_module_classes = [  # this should be class attributes, but
+            DescriptionEditorModule,  # requires reshuffling classes within the file
             IngredientEditorModule,
             InstructionsEditorModule,
             NotesEditorModule,

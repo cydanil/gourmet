@@ -1422,8 +1422,8 @@ class DescriptionEditorModule (TextEditor, RecEditorModule):
             debug("Widget for %s"%c,5)
             model = self.rg.get_attribute_model(c)
             self.rw[c].set_model(model)
-            # self.rw[c].set_text_column(0)
-            # cb.setup_completion(self.rw[c])
+            self.rw[c].set_entry_text_column(0)
+            cb.setup_completion(self.rw[c])
             if c=='category':
                 val = ', '.join(self.rg.rd.get_cats(self.current_rec))
             else:

@@ -179,35 +179,45 @@ def test_undo_save_sensitivity(rc):
     # Show the description tab
     rc.show_edit('description')
 
-    rc.saveEditsCB()
-    assert_with_message(
-        lambda : not rc.save.get_sensitive(),
-        'SAVE Button not properly desensitized after save'
-        )
-    for widget,value in [
-                         ('preptime',30*60),
-                         ('cooktime',60*60),
-                         ('title','Foo bar'),
-                         ('cuisine','Mexican'),
-                         ('category','Entree'),
-                         ('rating',8),
-                         ]:
-        if VERBOSE: print('TESTING ',widget)
-        if type(value)==int:
-            orig_value = rc.rw[widget].get_value()
-            rc.rw[widget].set_value(value)
-            get_method = rc.rw[widget].get_value
-            if VERBOSE: print('Set with set_value(',value,')')
-        elif widget in rc.reccom:
-            orig_value = rc.rw[widget].entry.get_text()
-            rc.rw[widget].entry.set_text(value)
-            get_method = rc.rw[widget].entry.get_text
-            if VERBOSE: print('Set with entry.set_text(',value,')')
+    # Make a save via the callback, which would normally be done via the
+    # Save button in the recipe editor window.
+    rc.recipe_editor.save_cb()
+
+    # Check that the `save` and `revert` push buttons are disabled.
+    action = rc.recipe_editor.mainRecEditActionGroup.get_action('Save')
+    is_enabled = action.get_sensitive()
+    assert not is_enabled, "Save Button not de-sensitized after save"
+
+    action = rc.recipe_editor.mainRecEditActionGroup.get_action('Revert')
+    is_enabled = action.get_sensitive()
+    assert not is_enabled, "Revert Button not de-sensitized after save"
+
+    test_values = {'preptime': 30 * 60, 'cooktime': 60 * 60, 'title': 'Foo bar',
+                   'cuisine': 'Mexican', 'category': 'Entree', 'rating': 8}
+
+    for wname, value in test_values.items():
+        widget = rc.rg.rtwidgdic[wname]
+        if VERBOSE:
+            print(f"TESTING {widget}")
+        if isinstance(value, int):
+            orig_value = widget.get_value()
+            widget.set_value(value)
+            get_method = widget.get_value
+            if VERBOSE:
+                print(f"Set with set_value({value})")
+        elif wname in rc.reccom:
+            # get_active_text
+            orig_value = widget.entry.get_text()
+            widget.entry.set_text(value)
+            get_method = widget.entry.get_text
+            if VERBOSE:
+                print(f"Set with entry.set_value({value})")
         else:
-            orig_value = rc.rw[widget].get_text()
-            rc.rw[widget].set_text(value)
-            get_method = rc.rw[widget].get_text
-            if VERBOSE: print('Set with set_text(',value,')')
+            orig_value = widget.get_text()
+            widget.set_text(value)
+            get_method = widget.get_text
+            if VERBOSE:
+                print(f"Set with set_text({value})")
         assert_with_message(
             lambda : get_method()==value,
             '''Value set properly for %s to %s (should be %s)'''%(

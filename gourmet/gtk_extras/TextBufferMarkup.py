@@ -85,32 +85,35 @@ class PangoBuffer (Gtk.TextBuffer):
             txt = txt.decode()
         Gtk.TextBuffer.set_text(self,"")
         try:
-            # XXX: self.txt has changed type here, verify that it's what the class expects
-            # TODO: Getting an AttributeError here: "InteractivePangoBuffer object has not attribute self"; ???
-            self.parsed, self.attrList, self.txt, self.separator = Pango.parse_markup(txt, -1, '\x00')
+            self.parsed, attributes, self.txt, self.separator = Pango.parse_markup(txt, -1, '\x00')
         except Exception as e:  # Pango getting unescaped txt text (g-markup-error-quark), eg. contains &amp
             print(f"Problem encountered escaping text: {txt}: {e}")
             import traceback; traceback.print_exc()
             txt=xml.sax.saxutils.escape(txt)
-            self.parsed, self.attrList, self.txt, self.separator = Pango.parse_markup(txt, -1, '\x00')
+            self.parsed, attributes, self.txt, self.separator = Pango.parse_markup(txt, -1, '\x00')
 
-        self.attrIter = self.attrList.get_iterator()
-        self.add_iter_to_buffer()
-        while self.attrIter.next():
-            self.add_iter_to_buffer()
+        self.add_attributes_to_buffer(attributes)
 
-    def add_iter_to_buffer (self):
-        start, end = self.attrIter.range()
-        tags = []
-        ret = self.attrIter.get_font(Pango.FontDescription.new(), None, None)
-        if ret is not None:
-            font, lang, attrs = ret
-            tags = self.get_tags_from_attrs(font, lang, attrs)
+    def add_attributes_to_buffer(self, attributes: Pango.AttrList):
+        """Add html markup attributes to the text buffered in this object.
 
-        # Insert the text at the location given by item.
-        text = self.txt[start:end]  # should be utf-8 string
-        item = self.get_end_iter()  # should be a Gtk.TextIter
-        self.insert_with_tags(item,text,*tags)
+        Given a list of text attributes, insert the markup tags around the text
+        delimited by the indices provided by each `item` attribute in the list.
+        """
+        attrs_iter = attributes.get_iterator()
+        while attrs_iter.next():
+            start, end = attrs_iter.range()
+            tags = []
+            ret = attrs_iter.get_font(Pango.FontDescription(), None, None)
+            if ret is not None:
+                font, lang, attrs = ret
+                tags = self.get_tags_from_attrs(font, lang, attrs)
+
+            text = self.txt[start:end]
+            item = self.get_end_attrs_iter()
+            self.insert_with_tags(item,text,*tags)
+
+        #  attrs_iter.destroy()  # TODO: check why calling destroy segfaults.
 
     def get_tags_from_attrs (self, font,lang,attrs):
         tags = []

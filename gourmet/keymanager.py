@@ -142,7 +142,7 @@ class KeyManager:
         The higher the score, the more probable the match.
         """
 
-        txt = txt.lower()
+        txt = txt.casefold()
         retvals = {}
         # First look for matches for our full text (or full text +/- s
         main_txts = [txt]
@@ -151,7 +151,7 @@ class KeyManager:
             main_txts.extend(defaults.guess_plurals(txt))
         for t in main_txts:
             is_key = self.rm.fetch_one(self.rm.ingredients_table,ingkey=t)
-            if is_key>=0:
+            if is_key is not None and is_key >= 0:
                 retvals[t]=.9
             exact = self.rm.fetch_all(self.rm.keylookup_table,
                                       item=t)
@@ -201,7 +201,7 @@ class KeyManager:
                 # Add some probability if our word shows up in the key
                 if ik.find(w)>=0: retvals[ik]+=0.1
         retv = list(retvals.items())
-        retv.sort(lambda a,b: a[1]<b[1] and 1 or a[1]>b[1] and -1 or 0)
+        retv.sort(key=lambda x: x[1])
         return retv
 
     def generate_key(self, ingr):

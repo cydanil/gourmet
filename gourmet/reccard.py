@@ -312,7 +312,7 @@ class RecCardDisplay (plugin_loader.Pluggable):
 
     def reflow_on_allocate_cb (self, sw, allocation):
         hadj = sw.get_hadjustment()
-        xsize = hadj.page_size
+        xsize = hadj.get_page_size()
         for widget,perc in self.reflow_on_resize:
             widg_width = int(xsize * perc)
             widget.set_size_request(widg_width,-1)
@@ -353,9 +353,10 @@ class RecCardDisplay (plugin_loader.Pluggable):
 
     def setup_style (self,main=None):
         """Modify style of widgets so we have a white background"""
+        return  # FIXME: check if main is always Gtk.VBox nowadays.
         if not main: main = self.main
         new_style = main.get_style().copy()
-        cmap = main.get_colormap()
+        cmap = Gdk.Col
         new_style.bg[Gtk.StateType.NORMAL]= cmap.alloc_color('white')
         new_style.bg[Gtk.StateType.INSENSITIVE] = cmap.alloc_color('white')
         new_style.fg[Gtk.StateType.NORMAL]= cmap.alloc_color('black')
@@ -688,7 +689,7 @@ class IngredientDisplay:
         self.recipe_display = recipe_display
         self.prefs = prefs.get_prefs()
         self.setup_widgets()
-        self.recipe_display = recipe_display; self.rg = self.recipe_display.rg
+        self.rg = self.recipe_display.rg
         self.markup_ingredient_hooks = []
 
     def setup_widgets (self):
@@ -2854,16 +2855,20 @@ class UndoableObjectWithInverseThatHandlesItsOwnUndo (Undo.UndoableObject):
         self.inverse_action()
 
 def add_with_undo (rc,method):
-    uts = UndoableTreeStuff(rc.ingtree_ui.ingController)
+    idx = rc.recipe_editor.module_tab_by_name["ingredients"]
+    ing_controller = rc.recipe_editor.modules[idx].ingtree_ui.ingController
+    uts = UndoableTreeStuff(ing_controller)
+
     def do_it ():
         uts.start_recording_additions()
         method()
         uts.stop_recording_additions()
+
     UndoableObjectWithInverseThatHandlesItsOwnUndo(
         do_it,
         uts.undo_recorded_additions,
-        rc.history,
-        widget=rc.ingtree_ui.ingController.imodel
+        ing_controller.ingredient_editor_module.history,
+        widget=ing_controller.imodel
         ).perform()
 
 class IngInfo:

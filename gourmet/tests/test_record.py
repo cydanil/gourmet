@@ -6,11 +6,16 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk  # noqa: import not a top of file
 
-from gourmet import gglobals  # noqa: import not at top
-from gourmet.reccard import add_with_undo, RecCard  # noqa: import not at top
+from gourmet import convert, gglobals  # noqa: import not at top
+from gourmet.reccard import add_with_undo, RecCard, RecCardDisplay  # noqa
 
 
 VERBOSE = True
+
+
+def print_(*msg):
+    if VERBOSE:
+        print(*msg)
 
 
 def assert_with_message(callable_, description):
@@ -25,19 +30,30 @@ def assert_with_message(callable_, description):
 
 
 def add_save_and_check(rc, lines_groups_and_dc):
+    idx = rc.recipe_editor.module_tab_by_name["ingredients"]
+    ing_controller = rc.recipe_editor.modules[idx].ingtree_ui.ingController
+
+    # add_with_undo is what's called by any of the ways a user can add an ingredient.
+    ing_editor = ing_controller.ingredient_editor_module
     added = []
-    for l, g, dc in lines_groups_and_dc:
-        # add_with_undo is what's called by any of the ways a user can add an ingredient.
+    for line, group, desc in lines_groups_and_dc:
         add_with_undo(
             rc,
-            lambda *args: added.append(rc.add_ingredient_from_line(l,group_iter=g))
-            )
-    #print 'add_save_and_check UNDO HISTORY:',rc.history
-    added = [rc.ingtree_ui.ingController.get_persistent_ref_from_iter(i) for i in added]
-    rc.saveEditsCB()
+            lambda *args: added.append(ing_editor.add_ingredient_from_line(line, group_iter=group))
+        )
+
+    history = ing_editor.history
+    print_("add_save_and_check UNDO HISTORY:", history)
+
+    added = [ing_controller.get_persistent_ref_from_iter(i) for i in added]
+
+    # Make a save via the callback, which would normally be called via the
+    # Save button in the recipe editor window.
+    rc.recipe_editor.save_cb()
+
     ings = rc.rd.get_ings(rc.current_rec)
     check_ings([i[2] for i in lines_groups_and_dc],ings)
-    #print 'add_save_and_check.return:',lines_groups_and_dc,'->',added
+    print_("add_save_and_check.return:", lines_groups_and_dc, "->", added)
     return added
 
 
@@ -66,17 +82,17 @@ def check_ings (check_dics,ings):
         n -= 1
 
 
-def test_ing_editing(rc):
+def test_ingredients_editing(rc):
     """In a recipe card, test ingredient editing"""
     # Show the ingredients tab
     rc.show_edit('ingredients')
 
     # Create an new ingredient group
-    i_controller = rc.recipe_editor.modules[1].ingtree_ui.ingController
-    i_group = i_controller.add_group('Foo bar')
+    idx = rc.recipe_editor.module_tab_by_name["ingredients"]
+    ing_controller = rc.recipe_editor.modules[idx].ingtree_ui.ingController
+    i_group = ing_controller.add_group('Foo bar')
 
-    if VERBOSE:
-        print("Testing ingredient editing - add 4 ingredients to a group.")
+    print_("Testing ingredient editing - add 4 ingredients to a group.")
     add_save_and_check(
         rc,
         [['1 c. sugar', i_group,
@@ -88,11 +104,10 @@ def test_ing_editing(rc):
         ['1 tbs. extraordinarily silly', i_group,
          {'amount':1,'unit':'tbs.','item':'extraordinarily silly','inggroup':'Foo bar'}],
         ])
-    if VERBOSE:
-        print("Ingredient editing successful")
+    print_("Ingredient editing successful")
 
 
-def test_ing_undo(rc):
+def test_ingredients_undo(rc):
     """In a recipe card, test adding ingredients and undoing that"""
     # Show the ingredients tab
     rc.show_edit('ingredients')
@@ -104,16 +119,15 @@ def test_ing_undo(rc):
     ]
     refs = add_save_and_check(rc, ings_groups_and_dcs)
 
-    i_controller = rc.recipe_editor.modules[1].ingtree_ui.ingController
-    del_iter = [i_controller.get_iter_from_persisten_ref(r) for r in refs]
-    if VERBOSE:
-        print(f"refs: {refs}")
-        print(f"-> {del_iter}")
+    idx = rc.recipe_editor.module_tab_by_name["ingredients"]
+    ing_controller = rc.recipe_editor.modules[idx].ingtree_ui.ingController
+    del_iter = [ing_controller.get_iter_from_persisten_ref(r) for r in refs]
+    print_(f"refs: {refs}")
+    print_(f"-> {del_iter}")
 
     # Delete the ingredients from the recipe card
-    i_controller.delete_iters(*del_iter)
-    if VERBOSE:
-        print(f"test_ing_undo - just deleted - UNDO HISTORY: {rc.history}")
+    ing_controller.delete_iters(*del_iter)
+    print_(f"test_ing_undo - just deleted - UNDO HISTORY: {rc.history}")
 
     # Save the edits by calling the callback that normally would be executed
     # upon button press.
@@ -126,60 +140,55 @@ def test_ing_undo(rc):
         ii = rc.rd.get_ings(rc.current_rec)
         check_ings([i[2] for i in ings_groups_and_dcs], ii)
     except AssertionError:
-        if VERBOSE:
-            print('Deletion worked!')
+        print_('Deletion worked!')
     else:
-        if VERBOSE:
-            print([i[2] for i in ings_groups_and_dcs])
-            print('corresponds to')
-            print([(i.amount,i.unit,i.item) for i in ii])
+        print_([i[2] for i in ings_groups_and_dcs])
+        print_('corresponds to')
+        print_([(i.amount,i.unit,i.item) for i in ii])
         raise Exception("Ingredients Not Deleted!")
 
     # The meat of the test is to undo the deletion
     # Undo the deletion and save the card. The content should now be
     # what it was at the beginning.
     rc.undo.emit('activate')
-    if VERBOSE:
-        print(f"test_ing_undo - pressed undo - history: {rc.history}")
+    print_(f"test_ing_undo - pressed undo - history: {rc.history}")
     rc.saveEditsCB()
 
     # Check that our ingredients have been put back properly by the undo action
-    if VERBOSE:
-        print('Checking for ',[i[2] for i in ings_groups_and_dcs])
-        print('Checking in ',rc.rd.get_ings(rc.current_rec))
+    print_('Checking for ',[i[2] for i in ings_groups_and_dcs])
+    print_('Checking in ',rc.rd.get_ings(rc.current_rec))
     check_ings([i[2] for i in ings_groups_and_dcs],
                 rc.rd.get_ings(rc.current_rec))
-    if VERBOSE:
-        print('Undo deletion worked!')
+    print_('Undo deletion worked!')
 
 
-def test_ing_group_editing(rc):
+def test_ingredients_group_editing(rc):
     # Show the ingredients tab
     rc.show_edit('ingredients')
 
-    # TODO: check module index correct
-    i_controller = rc.recipe_editor.modules[1].ingtree_ui.ingController
+    idx = rc.recipe_editor.module_tab_by_name["ingredients"]
+    ing_controller = rc.recipe_editor.modules[idx].ingtree_ui.ingController
 
     # The test relies on the first item being a group
-    itr = i_controller.imodel.get_iter(0,)
+    itr = ing_controller.imodel.get_iter(0,)
     rc.ingtree_ui.change_group(itr,'New Foo')
     rc.saveEditsCB()
     ings = rc.rd.get_ings(rc.current_rec)
     assert(ings[0].inggroup == 'New Foo') # Make sure our new group got saved
-    if VERBOSE: print('Group successfully changed to "New Foo"')
+    print_('Group successfully changed to "New Foo"')
     rc.undo.emit('activate') # Undo
     assert(rc.save.get_sensitive()) # Make sure "Save" is sensitive after undo
     rc.saveEditsCB() # Save new changes
     ings = rc.rd.get_ings(rc.current_rec)
     assert(ings[0].inggroup != 'New Foo') # Make sure our new group got un-done
-    if VERBOSE: print('Undo of group change worked.')
+    print_('Undo of group change worked.')
 
 
 def test_undo_save_sensitivity(rc):
     # Show the description tab
     rc.show_edit('description')
 
-    # Make a save via the callback, which would normally be done via the
+    # Make a save via the callback, which would normally be called via the
     # Save button in the recipe editor window.
     rc.recipe_editor.save_cb()
 
@@ -195,44 +204,41 @@ def test_undo_save_sensitivity(rc):
     test_values = {'preptime': 30 * 60, 'cooktime': 60 * 60, 'title': 'Foo bar',
                    'cuisine': 'Mexican', 'category': 'Entree', 'rating': 8}
 
+    card_display = RecCardDisplay(rc, rc.rg, rc.current_rec)
     for wname, value in test_values.items():
-        widget = rc.rg.rtwidgdic[wname]
-        if VERBOSE:
-            print(f"TESTING {widget}")
+        # Get the widget from the RecCardDisplay
+        widget = getattr(card_display, f"{wname}Display")
+        print_(f"TESTING {wname}")
+
         if isinstance(value, int):
-            orig_value = widget.get_value()
-            widget.set_value(value)
-            get_method = widget.get_value
-            if VERBOSE:
-                print(f"Set with set_value({value})")
-        elif wname in rc.reccom:
-            # get_active_text
-            orig_value = widget.entry.get_text()
-            widget.entry.set_text(value)
-            get_method = widget.entry.get_text
-            if VERBOSE:
-                print(f"Set with entry.set_value({value})")
+            value = convert.seconds_to_timestring(value)
+
+        if wname in card_display.special_display_functions:
+            orig_value = widget.get_active_text()
+            widget.set_text(value)
+            get_method = widget.get_active_text
+            print_(f"Set with entry.set_value({value})")
         else:
             orig_value = widget.get_text()
             widget.set_text(value)
             get_method = widget.get_text
-            if VERBOSE:
-                print(f"Set with set_text({value})")
-        assert_with_message(
-            lambda : get_method()==value,
-            '''Value set properly for %s to %s (should be %s)'''%(
-            widget,get_method(),value
-            )
-            )
-        assert_with_message(rc.save.get_sensitive,
-                            'Save sensitized after setting %s'%widget)
-        assert_with_message(rc.undo.get_sensitive,
-                            'Undo sensitized after setting %s'%widget)
-        print('-- Hitting UNDO')
-        rc.undo.emit('activate')
-        while Gtk.events_pending():
-            Gtk.main_iteration()
-        if orig_value and type(value)!=int: rc.undo.emit('activate') # Blank text, then fill it
+            print_(f"Set with set_text({value})")
+
+        msg = f"{wname} not set correctly: {get_method()}, should be {value}"
+        assert get_method() == value, msg
+
+        action = rc.recipe_editor.mainRecEditActionGroup.get_action('Save')
+        is_enabled = action.get_sensitive()
+        assert not is_enabled, "Save button not de-sensitized after save"
+
+        action = rc.recipe_editor.mainRecEditActionGroup.get_action('Revert')
+        is_enabled = action.get_sensitive()
+        assert not is_enabled, "Revert button not de-sensitized after save"
+        print_('-- Hitting Revert')
+        # Make a revert via the callback, which would normally be done via the
+        # Revert button in the recipe editor window.
+        rc.recipe_editor.revert_cb()
+
         assert_with_message(
             lambda : get_method()==orig_value,
             'Value of %s set to %s after Undo'%(widget,orig_value)
@@ -241,10 +247,10 @@ def test_undo_save_sensitivity(rc):
             lambda: not rc.save.get_sensitive(),
             'Save desensitized correctly after unsetting %s'%widget
             )
-        if VERBOSE: print("-- Hitting 'REDO'")
+        print_("-- Hitting 'REDO'")
         rc.redo.emit('activate')
         if orig_value and type(value)!=int:
-            if VERBOSE: print("(Hitting redo a second time for text...)")
+            print_("(Hitting redo a second time for text...)")
             rc.redo.emit('activate') # Blank text, then fill it
         assert_with_message(
             lambda : get_method()==value,
@@ -254,10 +260,10 @@ def test_undo_save_sensitivity(rc):
             )
         assert_with_message(rc.save.get_sensitive,
                             'Save sensitized after setting %s via REDO'%widget)
-        print('-- Hitting UNDO again')
+        print_('-- Hitting UNDO again')
         rc.undo.emit('activate')
         if orig_value and type(value)!=int:
-            if VERBOSE: print('(Hitting UNDO a second time for text)')
+            print_('(Hitting UNDO a second time for text)')
             rc.undo.emit('activate') # Blank text, then fill it
         assert_with_message(
             lambda : get_method()==orig_value,
@@ -269,7 +275,7 @@ def test_undo_save_sensitivity(rc):
         except:
             print('rc.widgets_changed_since_save',rc.widgets_changed_since_save)
             raise
-        if VERBOSE: print('DONE TESTING %s'%widget)
+        print_('DONE TESTING %s'%widget)
 
 # {'description': 0, 'ingredients': 1, 'instructions': 2, 'notes': 3}
 
@@ -279,13 +285,13 @@ with TemporaryDirectory(prefix='gourmet_', suffix='_test_reccard') as tmpdir:
     rec_card = RecCard()
 
     try:
-        # test_ing_editing(rec_card)
+        test_ingredients_editing(rec_card)
         print('Ing Editing works!')
-        # test_ing_undo(rec_card)
+        # test_ingredients_undo(rec_card)
         print('Ing Undo works!')
         test_undo_save_sensitivity(rec_card)
         print('Undo properly sensitizes save widget.')
-        test_ing_group_editing(rec_card)
+        test_ingredients_group_editing(rec_card)
         print('Ing Group Editing works.')
     except AssertionError:
         traceback.print_exc()

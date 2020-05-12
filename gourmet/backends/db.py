@@ -1699,7 +1699,9 @@ class RecData (Pluggable, BaseException):
             self.do_add(self.keylookup_table,{'item':item,'ingkey':key,'count':1})
         # The below code should move to a plugin for users who care about ingkeys...
         for w in item.split():
-            w=str(w.decode('utf8').lower())
+            if isinstance(w, bytes):
+                w = w.decode("utf8")
+            w = w.casefold()
             row = self.fetch_one(self.keylookup_table,word=str(w),ingkey=str(key))
             if row:
                 self.do_modify(self.keylookup_table,row,{'count':row.count+1})
@@ -1877,6 +1879,7 @@ class RecipeManager (RecData):
         m=convert.ING_MATCHER.match(s)
         if m:
             debug('ingredient parser successfully parsed %s'%s,1)
+            # amount, unit, ingredient
             a,u,i=(m.group(convert.ING_MATCHER_AMT_GROUP),
                    m.group(convert.ING_MATCHER_UNIT_GROUP),
                    m.group(convert.ING_MATCHER_ITEM_GROUP))
@@ -1906,7 +1909,8 @@ class RecipeManager (RecData):
                     d['optional']=True
                     i = i[0:optmatch.start()] + i[optmatch.end():]
                 d['item']=i.strip()
-                if get_key: d['ingkey']=self.km.get_key(i.strip())
+                if get_key:
+                    d['ingkey']=self.km.get_key(i.strip())
             debug('ingredient_parser returning: %s'%d,0)
             return d
         else:

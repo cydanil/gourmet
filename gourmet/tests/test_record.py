@@ -124,17 +124,18 @@ def test_ingredients_undo(rc):
 
     idx = rc.recipe_editor.module_tab_by_name["ingredients"]
     ing_controller = rc.recipe_editor.modules[idx].ingtree_ui.ingController
-    del_iter = [ing_controller.get_iter_from_persisten_ref(r) for r in refs]
+    del_iter = [ing_controller.get_iter_from_persistent_ref(r) for r in refs]
     print_(f"refs: {refs}")
     print_(f"-> {del_iter}")
 
     # Delete the ingredients from the recipe card
     ing_controller.delete_iters(*del_iter)
-    print_(f"test_ing_undo - just deleted - UNDO HISTORY: {rc.history}")
+    history = ing_controller.ingredient_editor_module.history
+    print_(f"test_ing_undo - just deleted - UNDO HISTORY: {history}")
 
-    # Save the edits by calling the callback that normally would be executed
-    # upon button press.
-    rc.saveEditsCB()
+    # Make a save via the callback, which would normally be called via the
+    # Save button in the recipe editor window.
+    rc.recipe_editor.save_cb()
 
     # Try to access the previously added ingredient.
     # If that raises an AssertionError, it means that the deletion

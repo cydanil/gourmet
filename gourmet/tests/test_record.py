@@ -7,6 +7,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk  # noqa: import not a top of file
 
 from gourmet import convert, gglobals  # noqa: import not at top
+from gourmet.backends.db import RecData
 from gourmet.reccard import add_with_undo, RecCard, RecCardDisplay  # noqa
 
 
@@ -43,7 +44,7 @@ def add_save_and_check(rc, lines_groups_and_dc):
         )
 
     history = ing_editor.history
-    print_("add_save_and_check UNDO HISTORY:", history)
+    print_("add_save_and_check REVERT history:", history)
 
     added = [ing_controller.get_persistent_ref_from_iter(i) for i in added]
 
@@ -51,8 +52,10 @@ def add_save_and_check(rc, lines_groups_and_dc):
     # Save button in the recipe editor window.
     rc.recipe_editor.save_cb()
 
-    ings = rc.rd.get_ings(rc.current_rec)
-    check_ings([i[2] for i in lines_groups_and_dc],ings)
+    # TODO: un-horror-ify this
+    rd = list(RecData._singleton.values())[0]
+    ings = rd.get_ings(rc.current_rec)
+    check_ings([i[2] for i in lines_groups_and_dc], ings)
     print_("add_save_and_check.return:", lines_groups_and_dc, "->", added)
     return added
 
@@ -276,8 +279,6 @@ def test_undo_save_sensitivity(rc):
             print('rc.widgets_changed_since_save',rc.widgets_changed_since_save)
             raise
         print_('DONE TESTING %s'%widget)
-
-# {'description': 0, 'ingredients': 1, 'instructions': 2, 'notes': 3}
 
 
 with TemporaryDirectory(prefix='gourmet_', suffix='_test_reccard') as tmpdir:

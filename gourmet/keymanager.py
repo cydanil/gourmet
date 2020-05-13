@@ -150,8 +150,12 @@ class KeyManager:
         if len(main_txts)==1:
             main_txts.extend(defaults.guess_plurals(txt))
         for t in main_txts:
-            is_key = self.rm.fetch_one(self.rm.ingredients_table,ingkey=t)
-            if is_key is not None and is_key >= 0:
+            # Look up for an entry in the ingredient table where term t is found
+            # in the value from the ingkey column.
+            # The ingredient table
+            # XXX: perhaps this fetch_one should be converted to fetch_val.
+            entry = self.rm.fetch_one(self.rm.ingredients_table,ingkey=t)
+            if entry is not None:
                 retvals[t]=.9
             exact = self.rm.fetch_all(self.rm.keylookup_table,
                                       item=t)

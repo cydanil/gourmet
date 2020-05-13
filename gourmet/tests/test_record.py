@@ -288,7 +288,7 @@ with TemporaryDirectory(prefix='gourmet_', suffix='_test_reccard') as tmpdir:
     try:
         test_ingredients_editing(rec_card)
         print('Ing Editing works!')
-        # test_ingredients_undo(rec_card)
+        test_ingredients_undo(rec_card)
         print('Ing Undo works!')
         test_undo_save_sensitivity(rec_card)
         print('Undo properly sensitizes save widget.')

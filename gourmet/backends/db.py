@@ -1,5 +1,5 @@
+from functools import cmp_to_key
 import shutil
-import types
 from gourmet.gdebug import debug, TimeAction, debug_decorator
 import re, string, os.path, time
 from gettext import gettext as _
@@ -1539,14 +1539,15 @@ class RecData (Pluggable, BaseException):
             if group_order[x[0]] > group_order[y[0]]: return 1
             elif group_order[x[0]] == group_order[y[0]]: return 0
             else: return -1
-        alist=list(groups.items())
-        sorted(alist, key=sort_groups)
+
+        alist = list(sorted(groups.items(), key=cmp_to_key(sort_groups)))
+
         def sort_ings (x,y):
             if x.position > y.position: return 1
             elif x.position == y.position: return 0
             else: return -1
         for g,lst in alist:
-            lst.sort(sort_ings)
+            lst.sort(key=cmp_to_key(sort_ings))
         final_alist = []
         last_g = -1
         for g,ii in alist:

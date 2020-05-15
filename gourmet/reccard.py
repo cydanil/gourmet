@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 import gc
 import gi
-from gi.repository import GObject
-from gi.repository import Gtk
-from gi.repository import Gdk
+from gi.repository import Gdk, GdkPixbuf, GObject, Gtk
 import os.path, string
 try:
     from PIL import Image
@@ -351,27 +349,29 @@ class RecCardDisplay (plugin_loader.Pluggable):
             self.imageDisplay.set_from_pixbuf(new_pb)
         gc.collect()
 
-    def setup_style (self,main=None):
-        """Modify style of widgets so we have a white background"""
-        return  # FIXME: check if main is always Gtk.VBox nowadays.
-        if not main: main = self.main
-        new_style = main.get_style().copy()
-        cmap = Gdk.Col
-        new_style.bg[Gtk.StateType.NORMAL]= cmap.alloc_color('white')
-        new_style.bg[Gtk.StateType.INSENSITIVE] = cmap.alloc_color('white')
-        new_style.fg[Gtk.StateType.NORMAL]= cmap.alloc_color('black')
-        new_style.fg[Gtk.StateType.INSENSITIVE] = cmap.alloc_color('black')
-        # define a function to walk our widgets recursively
-        def set_style (widg, styl):
-            if (not isinstance(widg,Gtk.Button) and
-                not isinstance(widg,Gtk.Entry) and
-                not isinstance(widg,Gtk.Notebook) and
-                not isinstance(widg,Gtk.Separator)
-                ): widg.set_style(styl)
-            if hasattr(widg,'get_children'):
-                for c in widg.get_children():
-                    set_style(c,styl)
-        set_style(main,new_style)
+    def setup_style(self, main=None):
+        """Set children widgets to have white background, black foreground."""
+        return
+        if main is None:
+            main = self.main
+
+        # Recursively set the style to all children widgets.
+        excluded = (Gtk.Button, Gtk.Entry, Gtk.Notebook, Gtk.Separator)
+        white = Gdk.RGBA(1.0, 1.0, 1.0)
+        black = Gdk.RGBA(0., 0., 0.)
+
+        def set_style(widget):
+            if not isinstance(widget, excluded):
+                widget.override_background_color(Gtk.StateFlags.NORMAL, white)
+                widget.override_background_color(Gtk.StateFlags.INSENSITIVE,
+                                                 white)
+                widget.override_color(Gtk.StateFlags.NORMAL, black)
+                widget.override_color(Gtk.StateFlags.INSENSITIVE, black)
+            if hasattr(widget, 'get_children'):
+                for c in widget.get_children():
+                    set_style(c)
+
+        set_style(main)
 
     # Main GUI setup
     def setup_main_window (self):

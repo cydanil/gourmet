@@ -188,7 +188,6 @@ class RecCardDisplay (plugin_loader.Pluggable):
         self.mm = mnemonic_manager.MnemonicManager()
         self.mm.add_toplevel_widget(self.window)
         self.mm.fix_conflicts_peacefully()
-        self.setup_style()
 
     def setup_uimanager (self):
         self.ui_manager = Gtk.UIManager()
@@ -348,30 +347,6 @@ class RecCardDisplay (plugin_loader.Pluggable):
             del pb
             self.imageDisplay.set_from_pixbuf(new_pb)
         gc.collect()
-
-    def setup_style(self, main=None):
-        """Set children widgets to have white background, black foreground."""
-        return
-        if main is None:
-            main = self.main
-
-        # Recursively set the style to all children widgets.
-        excluded = (Gtk.Button, Gtk.Entry, Gtk.Notebook, Gtk.Separator)
-        white = Gdk.RGBA(1.0, 1.0, 1.0)
-        black = Gdk.RGBA(0., 0., 0.)
-
-        def set_style(widget):
-            if not isinstance(widget, excluded):
-                widget.override_background_color(Gtk.StateFlags.NORMAL, white)
-                widget.override_background_color(Gtk.StateFlags.INSENSITIVE,
-                                                 white)
-                widget.override_color(Gtk.StateFlags.NORMAL, black)
-                widget.override_color(Gtk.StateFlags.INSENSITIVE, black)
-            if hasattr(widget, 'get_children'):
-                for c in widget.get_children():
-                    set_style(c)
-
-        set_style(main)
 
     # Main GUI setup
     def setup_main_window (self):

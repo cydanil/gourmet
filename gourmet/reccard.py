@@ -1214,7 +1214,7 @@ class IngredientEditorModule (RecEditorModule):
         add_with_undo(self, lambda *args: self.importIngredients(f))
 
     def paste_ingredients_cb (self, *args):
-        self.cb = Gtk.clipboard_get()
+        self.cb = Gtk.Clipboard()
         def add_ings_from_clippy (cb,txt,data):
             if txt:
                 def do_add ():
@@ -2830,8 +2830,8 @@ class UndoableObjectWithInverseThatHandlesItsOwnUndo (Undo.UndoableObject):
         self.inverse_action()
 
 def add_with_undo (rc,method):
-    idx = rc.recipe_editor.module_tab_by_name["ingredients"]
-    ing_controller = rc.recipe_editor.modules[idx].ingtree_ui.ingController
+    idx = rc.re.module_tab_by_name["ingredients"]
+    ing_controller = rc.re.modules[idx].ingtree_ui.ingController
     uts = UndoableTreeStuff(ing_controller)
 
     def do_it ():

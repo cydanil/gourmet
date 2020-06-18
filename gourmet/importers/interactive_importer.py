@@ -1,4 +1,4 @@
-from gi.repository import Gtk
+from gi.repository import Gtk, Pango
 from xml.sax.saxutils import escape
 from .generic_recipe_parser import RecipeParser
 import gourmet.gtk_extras.cb_extras as cb
@@ -224,11 +224,10 @@ class InteractiveImporter (ConvenientImporter, NotThreadSafe):
             # Otherwise, there's no clear sane default... we'll just
             # select the current whole line
             cur_mark = self.tb.get_insert()
-            cur_pos=Gtk.TextBuffer.get_iter_at_mark(cur_pos)
+            cur_pos=Gtk.TextBuffer.get_iter_at_mark(cur_mark)
             cur_pos.backward_chars(
                 cur_pos.get_line_offset())
             st = cur_pos
-            end = cur_pos.copy()
             end = cur_pos.forward_line()
         self.label_range(st,end,label)
 
@@ -419,11 +418,7 @@ class InteractiveImporter (ConvenientImporter, NotThreadSafe):
                 self.remove_widget(anchor)
 
     def commit_changes (self):
-        def mark_sorter (a,b):
-            a = self.tb.get_iter_at_mark(a[0]).get_offset()
-            b = self.tb.get_iter_at_mark(b[0]).get_offset()
-            return cmp(a,b)
-        self.labelled.sort(mark_sorter)
+        self.labelled.sort(key=lambda x: self.tb.get_iter_at_mark(x[0]).get_offset())
         if not self.labelled: return
         self.start_rec()
         started = False
@@ -477,8 +472,8 @@ class InteractiveImporter (ConvenientImporter, NotThreadSafe):
                 for i in self.images: ibd.add_image_from_uri(i)
                 ibd.run()
                 if ibd.ret:
-                    ifi = file(imageBrowser.get_image_file(ibd.ret),'r')
-                    image_str = ifi.read(); ifi.close()
+                    with open(imageBrowser.get_image_file(ibd.ret), 'rb') as ifi:
+                        image_str = ifi.read()
                     image = ImageExtras.get_image_from_string(image_str)
                     # Adding image!
                     thumb = ImageExtras.resize_image(image,40,40)
@@ -496,7 +491,7 @@ class InteractiveImporter (ConvenientImporter, NotThreadSafe):
         self.set_parsed(txt)
 
     def set_parsed (self, parsed):
-        #dbg_file = file('/tmp/out','w')
+        #dbg_file = open('/tmp/out','w')
         for chunk,tag in parsed:
             #dbg_file.write(chunk)
             if tag==None:

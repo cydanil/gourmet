@@ -6,11 +6,7 @@ from .gtk_extras import WidgetSaver, ratingWidget, cb_extras as cb, \
     mnemonic_manager, pageable_store, treeview_extras as te
 from . import convert
 from . import Undo
-from gi.repository import GObject
-from gi.repository import Gtk
-from gi.repository import Gdk
-from gi.repository import Pango
-from gi.repository import GdkPixbuf
+from gi.repository import Gdk, GdkPixbuf, GObject, Gtk, Pango
 
 class RecIndex:
     """We handle the 'index view' of recipes, which puts
@@ -84,14 +80,13 @@ class RecIndex:
         self.rSearchByMenu.set_active(0)
         self.rSearchByMenu.connect('changed',self.search_as_you_type)
         self.sautTog = self.ui.get_object('searchAsYouTypeToggle')
-        # help(self.search_actions.get_action('toggleSearchAsYouType'))
-        # self.search_actions.get_action('toggleSearchAsYouType').do_connect_proxy(self.search_actions.get_action('toggleSearchAsYouType'), self.sautTog)
+        self.search_actions.get_action('toggleSearchAsYouType').do_connect_proxy(self.search_actions.get_action('toggleSearchAsYouType'), self.sautTog)
         self.regexpTog = self.ui.get_object('regexpTog')
         self.searchOptionsBox = self.ui.get_object('searchOptionsBox')
-        # self.search_actions.get_action('toggleShowSearchOptions').connect_proxy(
-        #     self.ui.get_object('searchOptionsToggle')
-        #     )
-        # self.search_actions.get_action('toggleRegexp').connect_proxy(self.regexpTog)
+        self.search_actions.get_action('toggleShowSearchOptions').do_connect_proxy(self.search_actions.get_action('toggleShowSearchOptions'),
+            self.ui.get_object('searchOptionsToggle')
+            )
+        self.search_actions.get_action('toggleRegexp').do_connect_proxy(self.search_actions.get_action('toggleRegexp'), self.regexpTog)
         self.rectree = self.ui.get_object('recTree')
         self.sw = self.ui.get_object('scrolledwindow')
         self.rectree.connect('start-interactive-search',lambda *args: self.srchentry.grab_focus())
@@ -693,7 +688,8 @@ class RecipeModel (pageable_store.PageableViewStore):
     def update_recipe (self, recipe):
         """Handed a recipe (or a recipe ID), we update its display if visible."""
         debug('Updating recipe %s'%recipe.title,3)
-        if type(recipe)!=int: recipe=recipe.id  # make recipe == id
+        if not isinstance(recipe, int):
+            recipe = recipe.id  # make recipe == id
         for n,row in enumerate(self):
             debug('Looking at row',3)
             if row[0].id==recipe:

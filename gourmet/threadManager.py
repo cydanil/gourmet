@@ -28,11 +28,8 @@
 from gettext import gettext as _
 from gettext import ngettext
 import threading
-from gi.repository import Gtk
-from gi.repository import Pango
-from gi.repository import GObject
+from gi.repository import GObject, Gtk, Pango
 import time
-GObject.threads_init()
 
 # _IdleObject etc. based on example John Stowers
 # <john.stowers@gmail.com>
@@ -46,7 +43,7 @@ class _IdleObject(GObject.GObject):
         GObject.GObject.__init__(self)
 
     def emit(self, *args):
-        if args[0]!='progress': print('emit',args)
+        if args[0]!='progress': print('emit', *args)
         GObject.idle_add(GObject.GObject.emit,self,*args)
 
 class Terminated (Exception):
@@ -162,9 +159,14 @@ class ThreadManager:
 
     __single = None
 
+    @classmethod
+    def instance(cls):
+        if ThreadManager.__single is None:
+            ThreadManager.__single = cls()
+
+        return ThreadManager.__single
+
     def __init__ (self, max_concurrent_threads = 2):
-        if ThreadManager.__single:
-            raise ThreadManager.__single
         self.max_concurrent_threads = max_concurrent_threads
         self.thread_queue = []
         self.count = 0
@@ -219,22 +221,23 @@ class ThreadManager:
                 thread_to_add.initialize_thread()
 
 def get_thread_manager ():
-    try:
-        return ThreadManager()
-    except ThreadManager as tm:
-        return tm
+    return ThreadManager.instance()
+
 
 class ThreadManagerGui:
 
-    __single__ = None
+    __single = None
     paused_text = ' (' + _('Paused') + ')'
     PAUSE = 10
 
+    @classmethod
+    def instance(cls):
+        if ThreadManagerGui.__single is None:
+            ThreadManagerGui.__single = cls()
+
+        return ThreadManagerGui.__single
+
     def __init__ (self, messagebox=None):
-        if ThreadManagerGui.__single__:
-            raise ThreadManagerGui.__single__
-        else:
-            ThreadManagerGui.__single__ = self
         self.tm = get_thread_manager()
         self.threads = {}
 
@@ -289,8 +292,8 @@ class ThreadManagerGui:
         dlab.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
         cancel_button = threadbox.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
         vbox = Gtk.VBox()
-        vbox.pack_start(dlab, expand=True, fill=True)
-        vbox.pack_start(pb, expand=True, fill=True)
+        vbox.pack_start(dlab, expand=True, fill=True, padding=0)
+        vbox.pack_start(pb, expand=True, fill=True, padding=0)
         threadbox.get_content_area().add(vbox)
         threadbox.show_all()
         self.messagebox.pack_start(threadbox, True, True, 0)
@@ -326,7 +329,7 @@ class ThreadManagerGui:
             pb.set_text(txt + ' ('+_('Done')+')')
         else:
             pb.set_text('Done')
-        pb.set_percentage(1)
+        pb.set_fraction(.01)
         for widget in threadbox.get_content_area().get_children()[0]:
             widget.hide()
         threadbox.hide()
@@ -389,10 +392,8 @@ class ThreadManagerGui:
                         )
 
 def get_thread_manager_gui ():
-    try:
-        return ThreadManagerGui()
-    except ThreadManagerGui as tmg:
-        return tmg
+    return ThreadManagerGui.instance()
+
 
 if __name__ == '__main__':
     from gi.repository import Gtk

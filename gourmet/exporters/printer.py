@@ -28,11 +28,14 @@ class PrintManager (plugin_loader.Pluggable):
 
     __single = None
 
+    @classmethod
+    def instance(cls):
+        if not PrintManager.__single:
+            PrintManager.__single = PrintManager()
+
+        return PrintManager.__single
+
     def __init__ (self):
-        if PrintManager.__single:
-            raise PrintManager.__single
-        else:
-            PrintManager.__single = self
         self.sws = [(-1,NoSimpleWriter)]
         self.rrs = [(-1,NoRecRenderer)]
         plugin_loader.Pluggable.__init__(self,
@@ -40,10 +43,10 @@ class PrintManager (plugin_loader.Pluggable):
                                          )
 
     def register_plugin (self, plugin):
-        assert(type(plugin.simpleWriterPriority)==int)
+        assert isinstance(plugin.simpleWriterPriority, int)
         assert(plugin.SimpleWriter)
         self.sws.append((plugin.simpleWriterPriority,plugin.SimpleWriter))
-        assert(type(plugin.recWriterPriority)==int)
+        assert isinstance(plugin.recWriterPriority, int)
         assert(plugin.RecWriter)
         self.rrs.append((plugin.recWriterPriority,plugin.RecWriter))
 
@@ -85,9 +88,6 @@ class PrintManager (plugin_loader.Pluggable):
         show_message(sublabel='There was an error printing. Apologies')
 
 def get_print_manager ():
-    try:
-        return PrintManager()
-    except PrintManager as pm:
-        return pm
+    return PrintManager.instance()
 
 #printManager = get_print_manager()

@@ -16,11 +16,8 @@
 ### Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301
 ### USA
 from typing import Union
-import gi
-gi.require_versions({"Gtk": "3.0", "Pango": "1.0"})
-from gi.repository import Pango
-from gi.repository import Gtk
-from gi.repository import GObject
+
+from gi.repository import Gtk, Pango
 import xml.sax.saxutils
 from gourmet.gdebug import debug
 
@@ -78,15 +75,16 @@ class PangoBuffer (Gtk.TextBuffer):
         self.tags = {}
         #self.buf = buf
         #self.set_text(txt)
-        GObject.GObject.__init__(self)
+        Gtk.TextBuffer.__init__(self)
 
-    def set_text (self, txt: Union[str, bytes]):
+    def set_text (self, txt: Union[str, bytes]) -> None:
         if isinstance(txt, bytes):
+            # data loaded from the database are bytes, not str
             txt = txt.decode()
-        Gtk.TextBuffer.set_text(self,"")
+        Gtk.TextBuffer.set_text(self, txt)   # TODO: should clear the buffer of text
         try:
             self.parsed, attributes, self.txt, self.separator = Pango.parse_markup(txt, -1, '\x00')
-        except Exception as e:  # Pango getting unescaped txt text (g-markup-error-quark), eg. contains &amp
+        except Exception as e:  # unescaped text (g-markup-error-quark), eg. contains &amp
             print(f"Problem encountered escaping text: {txt}: {e}")
             import traceback; traceback.print_exc()
             txt=xml.sax.saxutils.escape(txt)
@@ -110,7 +108,10 @@ class PangoBuffer (Gtk.TextBuffer):
                 tags = self.get_tags_from_attrs(font, lang, attrs)
 
             text = self.txt[start:end]
-            item = self.get_end_attrs_iter()
+            try:
+                item = self.get_end_attrs_iter()
+            except AttributeError:
+                item = self.get_end_iter()
             self.insert_with_tags(item,text,*tags)
 
         #  attrs_iter.destroy()  # TODO: check why calling destroy segfaults.
@@ -197,7 +198,8 @@ class PangoBuffer (Gtk.TextBuffer):
         tagdict=self.get_tags()
         if not start: start=self.get_start_iter()
         if not end: end=self.get_end_iter()
-        txt = Gtk.TextBuffer.get_text(self, start, end, include_hidden_chars=False)
+        txt = Gtk.TextBuffer.get_text(self, start, end,
+                                      include_hidden_chars=False)
         cuts = {}
         for k,v in list(tagdict.items()):
             if k not in self.tagdict: continue
@@ -328,9 +330,9 @@ class InteractivePangoBuffer (PangoBuffer):
         ai=a.get_iterator()
         ret = ai.get_font(Pango.FontDescription(), None, None)
         if ret is not None:
-            font, lang, attrs = ret
+            font, _, attrs = ret
         else:
-            font = lang = attrs = None
+            font = attrs = None
         return self.setup_widget(widg,font,attrs)
 
     def setup_widget (self, widg, font, attr):

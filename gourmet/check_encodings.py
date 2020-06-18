@@ -27,8 +27,8 @@ class CheckEncoding:
         if get_prefs().get('utf-16',False):
             self.encodings.extend(['utf_16','utf_16_le','utf_16_be'])
         if encodings: self.encodings = encodings
-        if type(file) in [str,str]:
-            file = open(file,'r')
+        if isinstance(file, str):
+            file = open(file, 'rb')
         self.txt = file.read()
         file.close()
 
@@ -129,9 +129,7 @@ class EncodingDialog (de.OptionDialog):
     def create_options (self):
         options = list(self.encodings.keys())
         masterlist = CheckEncoding.encodings + CheckEncoding.all_encodings
-        def comp (a,b):
-            return cmp(masterlist.index(a),masterlist.index(b))
-        options.sort(comp)
+        options.sort(key=lambda x: masterlist.index(x))
         return options
 
     def create_expander (self):
@@ -220,16 +218,14 @@ class EncodingDialog (de.OptionDialog):
     def diff_texts (self):
         """Look at our differently encoded buffers for characters where they differ."""
         encoded_buffers = list(self.encodings.values())
-        def mycmp (a,b):
-            '''Sort by number of newlines (most first)'''
-            return cmp(len(b.splitlines()),len(a.splitlines()))
-        encoded_buffers.sort(mycmp)
+        # Sort by number of newlines (most first)
+        encoded_buffers.sort(key=lambda x: len(x.splitlines()), reverse=True)
         enc1 = encoded_buffers[0]
         enc_rest = [e.splitlines() for e in encoded_buffers[1:]]
         for linenum, l in enumerate(enc1.splitlines()):
             other_lines = [len(e)>linenum and e[linenum] for e in enc_rest]
             # Remove any Falses returned by above
-            other_lines = [x for x in other_lines if type(x) != bool]
+            other_lines = [x for x in other_lines if not isinstance(x, bool)]
             if False in [l==ol for ol in other_lines]:
                 ranges = []
                 for chnum,ch in enumerate(l):

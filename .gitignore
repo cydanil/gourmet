@@ -7,9 +7,11 @@
 .project
 .pydevproject
 .settings/
+*.egg-info/
 debian
 dist/
 build
 build-stamp
 configure-stamp
 MANIFEST
+po/gourmet.pot

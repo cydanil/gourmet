@@ -1,9 +1,8 @@
-from gi.repository import Gtk
-from gi.repository import GObject
+from typing import List
+from gi.repository import GObject, Gtk, Pango
 import os.path, fnmatch,  re
 from . import optionTable
 from . import thumbnail
-from gi.repository import Pango
 import xml.sax.saxutils
 from gettext import gettext as _
 from gourmet.gdebug import debug
@@ -57,7 +56,7 @@ class ModalDialog (Gtk.Dialog):
         self.vbox.show_all()
 
     def setup_dialog (self, *args, **kwargs):
-        GObject.GObject.__init__(self, *args, **kwargs)
+        Gtk.Dialog.__init__(self, *args, **kwargs)
 
     def setup_label (self, label):
         # we're going to add pango markup to our
@@ -117,12 +116,12 @@ class ModalDialog (Gtk.Dialog):
             self.vbox.add(self.expander)
 
     def _add_expander_item (self, item):
-        if type(item)==type(""):
+        if isinstance(item, str):
             l=Gtk.Label(label=item)
             l.set_selectable(True)
             l.set_line_wrap_mode(Pango.WrapMode.WORD)
             self.expander_vbox.pack_start(l,False, False, 0)
-        elif type(item)==[] or type(item)==():
+        elif isinstance(item, (list, tuple)):
             list(map(self._add_expander_item,item))
         else:
             self.expander_vbox.pack_start(item, True, True, 0)
@@ -158,7 +157,7 @@ class MessageDialog (Gtk.MessageDialog, ModalDialog):
         if 'title' in kwargs:
             title = kwargs['title']
             del kwargs['title']
-        GObject.GObject.__init__(self, *args, **kwargs)
+        Gtk.MessageDialog.__init__(self, *args, **kwargs)
         self.set_title(title)
 
     def setup_label (self, label):
@@ -183,17 +182,20 @@ class NumberDialog (ModalDialog):
         ModalDialog.__init__(self,default=default, parent=parent)
         self.hbox=Gtk.HBox()
         self.vbox.add(self.hbox)
-        #self.spinButton=Gtk.SpinButton(climb_rate=climb_rate,digits=digits)
+        self.spinButton = Gtk.SpinButton()
+
         if not default:
             val = 0
         else:
             val = float(default)
+
         self.adjustment=Gtk.Adjustment(val,
                                        lower=min,
                                        upper=max,
                                        step_incr=step_incr,
                                        page_incr=page_incr)
-        self.spinButton=Gtk.SpinButton(self.adjustment)
+        self.spinButton.set_adjustment(self.adjustment)
+
         if default:
             self.spinButton.set_value(default)
         if label:
@@ -257,8 +259,7 @@ class EntryDialog (ModalDialog):
         if default:
             self.entry.set_text(default)
         if entryTip:
-            self.tt = Gtk.Tooltips()
-            self.tt.set_tip(self.entry,entryTip)
+            self.entry.set_tooltip_text(entryTip)
         self.entry.connect("changed",self.update_value)
         # Set the default value after connecting our handler so our
         # value gets updated!
@@ -324,10 +325,12 @@ class OptionDialog (ModalDialog):
         self.menu = Gtk.Menu()
         # set the default value to the first item
         first = options[0]
-        if type(first)==type(""): self.ret=first
-        else: self.ret=first[1]
+        if isinstance(first, str):
+            self.ret = first
+        else:
+            self.ret = first[1]
         for o in options:
-            if type(o)==type(""):
+            if isinstance(o, str):
                 l=o
                 v=o
             else:
@@ -339,7 +342,7 @@ class OptionDialog (ModalDialog):
             self.optdic[i]=v
             self.menu.append(i)
         self.optionMenu=Gtk.OptionMenu()
-        self.vbox.pack_start(self.optionMenu,expand=False,fill=False)
+        self.vbox.pack_start(self.optionMenu, expand=False, fill=False, padding=0)
         self.optionMenu.set_menu(self.menu)
         self.optionMenu.show()
         self.menu.show()
@@ -627,26 +630,31 @@ class SimpleFaqDialog (ModalDialog):
         self.textview.set_right_margin(18)
         self.textbuf = self.textview.get_buffer()
         self.boldtag = self.textbuf.create_tag()
-        from pango import WEIGHT_BOLD
-        self.boldtag.set_property('weight',WEIGHT_BOLD)
+        self.boldtag.set_property('weight', Pango.Weight.BOLD)
         self.textwin = Gtk.ScrolledWindow()
         self.textwin.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.AUTOMATIC)
         self.textwin.add(self.textview)
+
+        self.index_lines = []
+        self.index_dic = {}
+        self.text = ""
+
         self.parse_faq(faq_file)
         if self.index_lines:
-            self.hp = Gtk.HPaned()
+            self.paned = Gtk.Paned()
             self.indexView = Gtk.TreeView()
             self.indexWin = Gtk.ScrolledWindow()
             self.indexWin.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.AUTOMATIC)
             self.indexWin.add(self.indexView)
             self.setup_index()
-            self.hp.add1(self.indexWin)
-            self.hp.add2(self.textwin)
-            self.vbox.add(self.hp)
+            self.paned.add1(self.indexWin)
+            self.paned.add2(self.textwin)
+            self.vbox.add(self.paned)
             self.vbox.show_all()
-            self.hp.set_position(325)
+            self.paned.set_position(325)
+            self.paned.set_vexpand(True)
         else:
-            self.vbox.add(textwin)
+            self.vbox.add(self.textwin)
             self.vbox.show_all()
         if jump_to: self.jump_to_header(jump_to)
 
@@ -665,35 +673,34 @@ class SimpleFaqDialog (ModalDialog):
                 self.indexView.expand_row(mod.get_path(itr),True)
                 return
 
-    def parse_faq (self, infile):
+    def parse_faq(self, filename: str) -> None:
         """Parse file infile as our FAQ to display.
 
         infile can be a filename or a file-like object.
         We parse index lines according to self.INDEX_MATCHER
         """
-        CLOSE=False
-        if type(infile) in [str,str]:
-            infile=open(infile)
-            CLOSE=True
+
+        # Clear data
         self.index_lines = []
-        self.index_dic={}
+        self.index_dic = {}
         self.text = ""
-        for l in infile.readlines():
-            if self.INDEX_MATCHER.match(l):
-                self.index_lines.append(l.strip())
-                curiter = self.textbuf.get_iter_at_mark(self.textbuf.get_insert())
-                self.index_dic[l.strip()]=self.textbuf.create_mark(None,curiter,left_gravity=True)
-                self.textbuf.insert_with_tags(
-                    curiter,
-                    l.strip()+" ",
-                    self.boldtag)
-            # we unwrap lines (paragraphs in our source are
-            # separated by blank lines
-            elif l.strip():
-                self.textbuf.insert_at_cursor(l.strip()+" ")
-            else:
-                self.textbuf.insert_at_cursor("\n\n")
-        if CLOSE: infile.close()
+
+        with open(filename, 'r') as fin:
+            for l in fin.readlines():
+                line = l.strip()
+                if self.INDEX_MATCHER.match(line):  # it is a heading
+                    self.index_lines.append(line)
+                    curiter = self.textbuf.get_iter_at_mark(self.textbuf.get_insert())
+                    self.index_dic[line] = self.textbuf.create_mark(None,
+                                                                    curiter,
+                                                                    left_gravity=True)
+                    self.textbuf.insert_with_tags(curiter,
+                                                  line + " ",
+                                                  self.boldtag)
+                elif line:  # it is body content
+                    self.textbuf.insert_at_cursor(line + " ")
+                else:  # an empty line is a paragraph break
+                    self.textbuf.insert_at_cursor("\n\n")
 
     def setup_index (self):
         """Set up a clickable index view"""
@@ -730,14 +737,16 @@ class SimpleFaqDialog (ModalDialog):
     def index_selected_cb (self,*args):
         mod,itr = self.indexView.get_selection().get_selected()
         val=self.indexView.get_model().get_value(itr,0)
-        #self.jump_to_text(val)
-        self.textview.scroll_to_mark(self.index_dic[val],False,use_align=True,yalign=0.0)
+        self.textview.scroll_to_mark(mark=self.index_dic[val],
+                                     within_margin=0.1,
+                                     use_align=True,
+                                     xalign=0.5,
+                                     yalign=0.0)
 
     def jump_to_text (self, txt, itr=None):
         if not itr:
             itr = self.textbuf.get_iter_at_offset(0)
         match_start,match_end=itr.forward_search(txt,Gtk.TextSearchFlags.VISIBLE_ONLY)
-        #print 'match_start = ',match_start
         self.textview.scroll_to_iter(match_start,False,use_align=True,yalign=0.1)
 
 class RatingsConversionDialog (ModalDialog):
@@ -872,10 +881,16 @@ def saveas_file (title,
     sfd=FileSelectorDialog(title,filename=filename,filters=filters,
                            action=action,set_filter=set_filter,buttons=buttons,
                            show_filetype=show_filetype,parent=parent)
-    retval = sfd.run()
-    if not retval:
-        return None,None
-    exp_type = get_type_for_filters(retval, filters[:])
+    filenames = sfd.run()
+    qty = len(filenames)
+    if qty == 0:
+        return None, None
+    elif qty == 1:
+        fname, = filenames  # unpack the filename
+    else:
+        raise ValueError(f"Expected 1 filename, but got {qty}", qty)
+
+    exp_type = get_type_for_filters(fname, filters[:])
     if not exp_type:
         # If we don't have a type based on our regexps... then lets
         # just see what the combobox was set to...
@@ -883,7 +898,7 @@ def saveas_file (title,
             exp_type = filters[sfd.saveas.get_active()][0]
         except:
             pass
-    return retval, exp_type
+    return fname, exp_type
 
 def get_type_for_filters (fname, filters):
     base,ext = os.path.splitext(fname)
@@ -1048,32 +1063,19 @@ class FileSelectorDialog:
             if fnmatch.fnmatch(fn, e):
                 return True
 
-    def run (self):
-        """Run our dialog and return the filename or None"""
+    def run(self) -> List[str]:
+        """Run our dialog and return the filename(s)"""
         response = self.fsd.run()
         if response == Gtk.ResponseType.OK:
-            # Gtk.FileChooser by default returns a UTF-8 encoded string, see
-            # http://www.pyGtk.org/pygtk2reference/class-gtkfilechooser.html#FileNamesAndEncodings
-            # Functions like Pillow's Image.open() (which is used for adding
-            # an image to a recipe) however require a unicode string.
-            # We need to do this as users wouldn't be able to e.g. add images with
-            # diacritics in their paths.
-
             if self.multiple:
-                #if vfs_available:
-                #    fn = self.fsd.get_uris()
-                #else:
-                fn = [str(f, 'utf-8') for f in self.fsd.get_filenames()]
+                fn = self.fsd.get_filenames()
             else:
-                #if vfs_available:
-                #    fn = self.fsd.get_uri()
-                #else:
-                fn = str(self.fsd.get_filename(), 'utf-8')
+                fn = [self.fsd.get_filename()]
             if not fn:
                 show_message(label=_('No file selected'),
                              sublabel=_('No file was selected, so the action has been cancelled')
                              )
-                return None
+                return []
             if self.action==Gtk.FileChooserAction.SAVE:
                 # add the extension if need be...
                 if self.do_saveas and not self.is_extension_legal(fn):
@@ -1084,7 +1086,7 @@ class FileSelectorDialog:
             return fn
         else:
             self.quit()
-            return None
+            return []
 
     def quit (self, *args):
         if hasattr(self,'timeout'):

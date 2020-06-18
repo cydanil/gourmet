@@ -1,13 +1,13 @@
 import gourmet.plugin_loader as plugin_loader
 from gourmet.plugin import ImporterPlugin, ImportManagerPlugin
 import gourmet.gtk_extras.dialog_extras as de
-from gourmet.recipeManager import default_rec_manager
-import os.path
 from fnmatch import fnmatch
 from gourmet.threadManager import get_thread_manager, get_thread_manager_gui, NotThreadSafe
 from .webextras import URLReader
 import tempfile
 from gettext import gettext as _
+from urllib.parse import urlparse
+
 
 class ImportFileList (Exception):
     """A special case error -- if an importer throws this error
@@ -26,9 +26,14 @@ class ImportManager (plugin_loader.Pluggable):
 
     __single = None
 
+    @classmethod
+    def instance(cls):
+        if ImportManager.__single is None:
+            ImportManager.__single = cls()
+
+        return ImportManager.__single
+
     def __init__ (self):
-        if ImportManager.__single: raise ImportManager.__single
-        else: ImportManager.__single = self
         self.tempfiles = {}
         self.extensions_by_mimetype = {}
         self.plugins_by_name = {}
@@ -62,9 +67,14 @@ class ImportManager (plugin_loader.Pluggable):
         if not url: return
         else: return self.import_url(url)
 
-    def import_url (self, url):
-        if url.find('//')<0:
-            url = 'http://'+url
+    def import_url(self, url):
+        parsed_url = urlparse(url)
+        if parsed_url.scheme:
+            # there is an `http[s]` prefix
+            url = "{}://{}{}".format(parsed_url.scheme, parsed_url.netloc, parsed_url.path)
+        else:
+            # no `https` prefix, we add one
+            url = 'https://' + parsed_url.path
         reader = URLReader(url)
         reader.connect('completed',
                        self.finish_web_import)
@@ -200,7 +210,21 @@ class ImportManager (plugin_loader.Pluggable):
     def get_importer (self, name):
         return self.plugins_by_name[name]
 
-    def get_tempfilename (self, url, data, content_type):
+    def get_tempfilename(self, url: str,
+                         data: bytes,
+                         content_type: str) -> str:
+        """Get a temporary filename for the file to parse.
+
+        The url is a page where a recipe is found, for which Gourmet should have
+        a plugin.
+        data is the retrieved html document.
+        content_type is the mime-type string representation (eg. 'text/html')
+
+        The value returned is a string containing the temporary file path.
+
+        TODO: self.tempfiles could store pathlib.Path objects, and this function
+              return these.
+        """
         if url in self.tempfiles:
             return self.tempfiles[url]
         else:
@@ -214,16 +238,14 @@ class ImportManager (plugin_loader.Pluggable):
         else:
             tf = tempfile.mktemp()
         self.tempfiles[url] = tf
-        ofi = open(tf,'w')
-        ofi.write(data)
-        ofi. close()
+        with open(tf, "wb") as fout:
+            fout.write(data)
         return self.tempfiles[url]
 
     def guess_extension (self, content_type):
         if content_type in self.extensions_by_mimetype:
             answers = list(self.extensions_by_mimetype[content_type].items())
-            answers.sort(lambda a,b: cmp(a[1],b[1])) # sort by count...
-            return answers[-1][0] # Return the most frequent
+            return max(answers, key=lambda x: x[1])[0] # Return the most frequent by count...
         else:
             import mimetypes
             return mimetypes.guess_extension(content_type)
@@ -279,12 +301,9 @@ class ImportManager (plugin_loader.Pluggable):
             self.plugins.remove(plugin)
 
 def get_import_manager ():
-    try:
-        return ImportManager()
-    except ImportManager as im:
-        return im
+    return ImportManager.instance()
 
 if __name__ == '__main__':
-    im = ImportManager()
+    im = ImportManager.instance()
     im.offer_import()
     Gtk.main()

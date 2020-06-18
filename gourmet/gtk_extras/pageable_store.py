@@ -1,5 +1,4 @@
-from gi.repository import Gtk
-from gi.repository import GObject
+from gi.repository import GObject, Gtk
 
 class PageableListStore (Gtk.ListStore):
     """A ListStore designed to show bits of data at a time.
@@ -130,7 +129,7 @@ class PageableListStore (Gtk.ListStore):
         # This will only work with ListStores -- if we update to
         # accomodate TreeStores, this is one of the things that must
         # change
-        if type(itr)==tuple:
+        if isinstance(itr, tuple):
             path = itr
             itr=self.get_iter(path)
         else:
@@ -167,17 +166,13 @@ class PageableListStore (Gtk.ListStore):
 
         Note -- to remove term we use direction=OFF
         """
+        assert(direction in (self.FORWARD, self.REVERSE, self.OFF))
 
         self.sort_dict[column]=direction
         if direction==self.OFF:
             self.parent_list = self.unsorted_parent
             return
-        if direction==self.FORWARD: shift_by = 1
-        elif direction==self.REVERSE: shift_by = -1
-        self.parent_list.sort(lambda r1,r2: ((r1[column]>r2[column] and 1*shift_by) or
-                                             (r1[column]<r2[column] and -1*shift_by) or
-                                             0)
-                              )
+        self.parent_list.sort(key=lambda x: x[column], reverse=(direction == self.REVERSE))
         self.update_tree()
 
     def toggle_sort (self, column):
@@ -239,8 +234,8 @@ class PageableTreeStore (Gtk.TreeStore, PageableListStore):
         We include all children by default -- subclasses can override
         update_tree to get fancier.
         """
-        self.__gobject_init__()
-        GObject.GObject.__init__(self, *types)
+        # self.__gobject_init__()
+        Gtk.TreeStore.__init__(self, *types)
         self.per_page = per_page
         self._setup_parent_(*parent_args,**parent_kwargs)
         self.update_tree()

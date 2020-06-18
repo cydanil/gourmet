@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import os.path, os, re, threading, string
+import os.path, os, re, threading
 try:
     from gi import gicompat
 except ImportError:
@@ -9,9 +9,7 @@ if pygtkcompat is not None:
     pygtkcompat.enable()
     pygtkcompat.enable_gtk(version='3.0')
 
-from gi.repository import Gtk
-from gi.repository import GObject
-from gi.repository import Gdk
+from gi.repository import Gdk, GdkPixbuf, GObject, Gtk
 from . import batchEditor
 from . import recipeManager
 from .exporters.printer import get_print_manager
@@ -34,7 +32,6 @@ from .defaults.defaults import lang as defaults
 from .defaults.defaults import get_pluralized_form
 from . import plugin_loader, plugin, plugin_gui
 from .threadManager import get_thread_manager, get_thread_manager_gui, SuspendableThread
-from gi.repository import GdkPixbuf
 
 
 UNDO = 1
@@ -67,10 +64,14 @@ class GourmetApplication:
 
     __single = None
 
+    @classmethod
+    def instance(cls):
+        if GourmetApplication.__single is None:
+            GourmetApplication.__single = cls()
+
+        return GourmetApplication.__single
+
     def __init__ (self, splash_label=None):
-        if GourmetApplication.__single:
-            raise GourmetApplication.__single
-        GourmetApplication.__single = self
         # These first two items might be better handled using a
         # singleton design pattern...
         self.splash_label = splash_label
@@ -84,8 +85,6 @@ class GourmetApplication:
         self.setup_shopping()
         self.setup_go_menu()
         self.rc={}
-        self.exportManager = get_export_manager()
-        self.importManager = get_import_manager()
 
     def setup_plugins (self):
         pass
@@ -543,10 +542,12 @@ class RecTrash (RecIndex):
         top_label.set_markup('<span weight="bold" size="large">'\
                 +_('Trash')+'</span>\n<i>'\
                 +_('Browse, permanently delete or undelete deleted recipes')+'</i>')
-        box.pack_start(top_label,expand=False,fill=False);top_label.show()
+        box.pack_start(top_label, expand=False, fill=False, padding=0)
+        top_label.show()
         self.recipe_index_interface = self.ui.get_object('recipeIndexBox')
         self.recipe_index_interface.unparent()
-        box.pack_start(self.recipe_index_interface,fill=True,expand=True)
+        box.pack_start(self.recipe_index_interface, fill=True,
+                       expand=True, padding=0)
         self.recipe_index_interface.show()
         self.rg.conf.append(WidgetSaver.WindowSaver(self.window,
                                                     self.prefs.get('trash_window',
@@ -613,8 +614,7 @@ class UnitModel (Gtk.ListStore):
     def __init__ (self, converter):
         debug('UnitModel.__init__',5)
         self.conv = converter
-        # GObject.GObject.__init__(self, str, str)
-        GObject.GObject.__init__(self)
+        Gtk.ListStore.__init__(self, str, str)
         # the first item of each conv.units
         ## areckx: is there a reason why this is formatted this way?
         lst = [(a[1][0],a[0]) for a in [x for x in self.conv.units if not (x[1][0] in converter.unit_to_seconds
@@ -625,10 +625,10 @@ class UnitModel (Gtk.ListStore):
         lst.sort()
         for ulong,ushort in lst:
             iter=self.append()
-            # self.set_value(iter,0,ushort)
+            self.set_value(iter,0,ushort)
             if ulong != ushort:
                 ulong = "%s (%s)"%(ulong,ushort)
-            # self.set_value(iter,1,"%s"%ulong)
+            self.set_value(iter,1,"%s"%ulong)
 
 def set_accel_paths (ui, widgets, base='<main>'):
     """A convenience function. Hand us a function and set accel
@@ -736,15 +736,29 @@ class ImporterExporter:
             change_units=self.prefs.get('readableUnits',True)
             )
 
+    __import_manager = None
+
+    @property
+    def importManager(self):
+        if self.__import_manager is None:
+            self.__import_manager = get_import_manager()
+        return self.__import_manager
+
     def import_webpageg (self, *args):
         self.importManager.offer_web_import(parent=self.app.get_toplevel())
 
     def do_import (self, *args):
         self.importManager.offer_import(self.window)
 
+    __export_manager = None
+
+    @property
+    def exportManager(self):
+        if self.__export_manager is None:
+            self.__export_manager = get_export_manager()
+        return self.__export_manager
+
     def do_export (self, export_all=False):
-        if not hasattr(self,'exportManager'):
-            self.exportManager = get_export_manager()
         if export_all:
             recs = self.rd.fetch_all(self.rd.recipe_table,deleted=False,sort_by=[('title',1)])
         else:
@@ -905,11 +919,14 @@ class RecGui (RecIndex, GourmetApplication, ImporterExporter, StuffThatShouldBeP
 
     __single = None
 
+    @classmethod
+    def instance(cls):
+        if RecGui.__single is None:
+            RecGui.__single = cls()
+
+        return RecGui.__single
+
     def __init__ (self, splash_label=None):
-        if RecGui.__single:
-            raise RecGui.__single
-        else:
-            RecGui.__single = self
         self.doing_multiple_deletions = False
         GourmetApplication.__init__(self, splash_label=splash_label)
         self.setup_index_columns()
@@ -1039,7 +1056,7 @@ class RecGui (RecIndex, GourmetApplication, ImporterExporter, StuffThatShouldBeP
 
     def rectree_popup (self, tv, event, *args):
         menu = self.ui_manager.get_widget("/RecipeIndexMenuBar/Actions/").get_submenu()
-        menu.popup(None,None,None,event.button,event.time)
+        menu.popup_at_pointer(None)
         return True
 
     def setup_actions (self):
@@ -1143,7 +1160,7 @@ class RecGui (RecIndex, GourmetApplication, ImporterExporter, StuffThatShouldBeP
             rc=reccard.RecCard(self)
             self.make_rec_visible(rc.current_rec)
             self.rc[rc.current_rec.id]=rc
-            self.app.window.set_cursor(None)
+            self.app.get_window().set_cursor(None)
             self.update_go_menu()
         GObject.idle_add(show)
 
@@ -1255,7 +1272,7 @@ class RecGui (RecIndex, GourmetApplication, ImporterExporter, StuffThatShouldBeP
         self.set_reccount()
         if hasattr(self,'recTrash'):
             self.recTrash.update_from_db()
-        self.message(_("Deleted") + ' ' + string.join([(r.title or _('Untitled')) for r in recs],', '))
+        self.message(_("Deleted") + ' ' + ', '.join((r.title or _('Untitled')) for r in recs))
 
     def purge_rec_tree (self, recs, paths=None, model=None):
         if not recs:
@@ -1402,10 +1419,7 @@ class RecGui (RecIndex, GourmetApplication, ImporterExporter, StuffThatShouldBeP
         Gtk.main_quit()
 
 def get_application ():
-    try:
-        return RecGui()
-    except RecGui as rg:
-        return rg
+    return RecGui.instance()
 
 if __name__ == '__main__':
     if os.name!='nt':

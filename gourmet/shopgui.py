@@ -1,8 +1,5 @@
 #!/usr/bin/env python
-from gi.repository import Gtk
-from gi.repository import GObject
-from gi.repository import Pango
-from gi.repository import Gdk
+from gi.repository import Gdk, GObject, Gtk
 import sys, os.path, time, os, string
 from . import recipeManager, convert, reccard, prefs
 from .gtk_extras import WidgetSaver, mnemonic_manager
@@ -230,7 +227,7 @@ class IngredientAndPantryList:
         self.pTree_sel_changed_cb(self.pTree.get_selection())
         def pTree_popup_cb (tv, event):
             debug("pTree_popup_cb (tv, event):",5)
-            if event.button==3 or event.type == Gdk._2BUTTON_PRESS:
+            if event.button==3 or event.type == Gdk.EventType._2BUTTON_PRESS:
                 self.popup_pan_menu(tv,event)
                 return True
 
@@ -245,7 +242,7 @@ class IngredientAndPantryList:
         self.slTree.connect('popup-menu',self.popup_ing_menu)
         def slTree_popup_cb (tv, event):
             debug("slTree_popup_cb (tv, event):",5)
-            if event.button==3 or event.type == Gdk._2BUTTON_PRESS:
+            if event.button==3 or event.type == Gdk.EventType._2BUTTON_PRESS:
                 self.popup_ing_menu(tv,event)
                 return True
         self.slTree.connect('button-press-event',slTree_popup_cb)
@@ -630,9 +627,8 @@ class ShopGui (ShoppingList, plugin_loader.Pluggable, IngredientAndPantryList):
     def setup_cat_box (self):
         # Setup change-category widget
         self.cat_box = Gtk.HBox()  # ; self.cat_box.set_spacing(6)
-        self.cat_cbe = Gtk.ComboBox()
+        self.cat_cbe = Gtk.ComboBox.new_with_entry()
         self.cat_cbe.set_model(self.get_catmodel())
-        # help(self.cat_cbe)
         self.cat_cbe.set_entry_text_column(0)
         self.cat_entry = self.cat_cbe.get_child()
         self.cat_button = Gtk.Button(stock=Gtk.STOCK_APPLY)
@@ -640,12 +636,11 @@ class ShopGui (ShoppingList, plugin_loader.Pluggable, IngredientAndPantryList):
         self.cat_label.set_mnemonic_widget(self.cat_entry)
         comp = Gtk.EntryCompletion()
         comp.set_model(self.get_catmodel()); comp.set_text_column(0)
-        # help(self.cat_entry)
-        # self.cat_entry.set_completion(comp)
+        self.cat_entry.set_completion(comp)
         self.cat_box.pack_start(self.cat_label,False,False,0); self.cat_label.show()
         self.cat_box.pack_start(self.cat_cbe, True, True, 0); self.cat_cbe.show()
         self.cat_box.pack_start(self.cat_button,False,False,0); self.cat_button.show()
-        # self.cat_entry.connect('activate',self.category_changed) TODO: fix this
+        self.cat_entry.connect('activate',self.category_changed)
         self.cat_button.connect('clicked',self.category_changed)
 
     def setup_actions (self):

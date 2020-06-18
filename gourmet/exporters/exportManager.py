@@ -2,7 +2,8 @@ import gourmet.plugin_loader as plugin_loader
 from gourmet.plugin import ExporterPlugin
 import gourmet.gtk_extras.dialog_extras as de
 from gourmet.threadManager import get_thread_manager, get_thread_manager_gui
-from gi.repository.GLib import get_user_special_dir, USER_DIRECTORY_PICTURES
+from gi.repository.GLib import (get_user_special_dir, USER_DIRECTORY_PICTURES,
+    USER_DIRECTORY_DOCUMENTS)
 from gettext import gettext as _
 import os.path
 
@@ -16,9 +17,14 @@ class ExportManager (plugin_loader.Pluggable):
 
     __single = None
 
+    @classmethod
+    def instance(cls):
+        if not ExportManager.__single:
+            ExportManager.__single = ExportManager()
+
+        return ExportManager.__single
+
     def __init__ (self):
-        if ExportManager.__single: raise ExportManager.__single
-        else: ExportManager.__single = self
         self.plugins_by_name = {}
         plugin_loader.Pluggable.__init__(self,
                                          [ExporterPlugin]
@@ -64,19 +70,17 @@ class ExportManager (plugin_loader.Pluggable):
                 export_file_mode = 'w'
         else:
             export_file_mode = 'w'
-        outfi = file(filename,
-                     export_file_mode)
-        # this should write to our file...
-        exporter_plugin.do_single_export({
-            'rd':self.app.rd,
-            'rec':rec,
-            'out':outfi,
-            'conv':self.app.conv,
-            'change_units':self.app.prefs.get('readableUnits',True),
-            'mult':mult,
-            'extra_prefs':extra_prefs,
+        with open(filename, export_file_mode) as outfi:
+            # this should write to our file...
+            exporter_plugin.do_single_export({
+                'rd':self.app.rd,
+                'rec':rec,
+                'out':outfi,
+                'conv':self.app.conv,
+                'change_units':self.app.prefs.get('readableUnits',True),
+                'mult':mult,
+                'extra_prefs':extra_prefs,
             })
-        outfi.close()
         return filename
 
     def offer_multiple_export (self, recs, prefs, parent=None, prog=None,
@@ -193,7 +197,4 @@ class ExportManager (plugin_loader.Pluggable):
             print('WARNING: unregistering ',plugin,'but there seems to be no plugin for ',name)
 
 def get_export_manager ():
-    try:
-        return ExportManager()
-    except ExportManager as em:
-        return em
+    return ExportManager.instance()

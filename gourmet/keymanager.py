@@ -1,5 +1,8 @@
 from collections import defaultdict
-import re, time
+import re
+import time
+from typing import List, Tuple
+
 from .defaults.defaults import lang as defaults
 from .defaults.defaults import langProperties as langProperties
 from .gdebug import debug, TimeAction
@@ -21,11 +24,14 @@ class KeyManager(Exception):
 
     __single = None
 
+    @classmethod
+    def instance(cls, *args, **kwargs):
+        if KeyManager.__single is None:
+            KeyManager.__single = cls(*args, **kwargs)
+
+        return KeyManager.__single
+
     def __init__ (self, kd={}, rm=None):
-        if KeyManager.__single:
-            raise KeyManager.__single
-        else:
-            KeyManager.__single = self
         self.kd = kd
         if not rm:
             from . import recipeManager
@@ -136,7 +142,7 @@ class KeyManager(Exception):
         debug("End get_key",10)
         return k
 
-    def look_for_key(self, txt: str) -> list((str, float)):
+    def look_for_key(self, txt: str) -> List[Tuple[str, float]]:
         """Given a key, return a sorted list of potential matching known keys.
 
         By using some heuristics to find spelling variations, look up the
@@ -258,7 +264,7 @@ class KeyManager(Exception):
         debug("Start remove_verbs",10)
         t=TimeAction('remove_verbs',0)
         stringp=True
-        if type(words)==type([]):
+        if isinstance(words, list):
             stringp=False
             words = " ".join(words)
         words = words.split(';')[0] #we ignore everything after semicolon
@@ -335,10 +341,7 @@ cooking_verbs=["cored",
                "chilled"]
 
 def get_keymanager (*args, **kwargs):
-    try:
-        return KeyManager(*args,**kwargs)
-    except KeyManager as km:
-        return km
+    return KeyManager.instance(*args,**kwargs)
 
 if __name__ == '__main__':
 

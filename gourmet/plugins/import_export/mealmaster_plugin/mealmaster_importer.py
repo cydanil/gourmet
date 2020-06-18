@@ -474,7 +474,7 @@ def fields_match (strings, fields, matcher):
 def field_match (strings, tup, matcher):
     testtimer = TimeAction('mealmaster_importer.field_match',10)
     debug("start field_match",10)
-    if type(matcher)==type(""):
+    if isinstance(matcher, str):
         matcher=re.compile(matcher)
     for f in [s[tup[0]:tup[1]] for s in strings]:
         #f=s[tup[0]:tup[1]]
@@ -539,8 +539,8 @@ def find_columns (strings, char=" "):
     # we start with the columns in the first string
     if not strings:
         return None
-    strings=strings[0:]
-    strings.sort(lambda x,y: len(x)>len(y))
+    strings=list(strings)
+    strings.sort(key=len, reverse=True)
     columns = [match.start() for match in re.finditer(re.escape(char),strings[0])]
     if len(strings)==1:
         return columns

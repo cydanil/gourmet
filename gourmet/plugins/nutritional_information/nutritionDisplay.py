@@ -1,4 +1,5 @@
-import gtk, re
+from gi.repository import Gtk
+import re
 from . import parser_data
 import gourmet.cb_extras as cb
 import gourmet.dialog_extras as de
@@ -8,7 +9,7 @@ class NutritionModel (Gtk.TreeStore):
     TITLE_FIELD = 'desc'
     def __init__ (self, nvw):
         self.nvw = nvw
-        GObject.GObject.__init__(self,str,str)
+        Gtk.TreeStore.__init__(self,str,str)
         self.populate_model()
 
     def connect_treeview_signals (self,tv):
@@ -168,8 +169,8 @@ if __name__ == '__main__':
         Gtk.mainquit()
     #snd=SimpleNutritionalDisplay(db.nutrition_table)
     #snd.w.connect('delete-event',quit)
-    from . import nutrition.nutrition
-    nd=nutrition.nutrition.NutritionData(db,conv)
+    from . import nutrition
+    nd=nutrition.NutritionData(db,conv)
     sic = SimpleIngredientCalculator(nd,umod)
     sic.run()
     Gtk.main()

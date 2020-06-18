@@ -1,4 +1,4 @@
-import gtk, pango, gobject
+from gi.repository import Gdk, GObject, Gtk, Pango
 from gettext import gettext as _
 import gourmet.defaults
 
@@ -134,7 +134,7 @@ RECOMMENDED_INTAKE = {
         }
 
 
-class NutritionLabel (Gtk.VBox, GObject.GObject):
+class NutritionLabel (Gtk.VBox):
     """Provide a nutritional label that looks like standard FDA
     labels."""
 
@@ -171,8 +171,7 @@ class NutritionLabel (Gtk.VBox, GObject.GObject):
         self.prefs = prefs
         self.rec = rec
         start_at = 4
-        GObject.GObject.__init__(self)
-        GObject.GObject.__init__(self)
+        Gtk.VBox.__init__(self)
         #,2,len(NUT_LAYOUT)+start_at)
         self.show()
         self.tt = Gtk.Tooltips()
@@ -434,7 +433,7 @@ class NutritionLabel (Gtk.VBox, GObject.GObject):
         """
         for itm in self.nutrition_display_info:
             props = itm['props']
-            if type(props)==str:
+            if isinstance(props, str):
                 rawval = getattr(self.nutinfo,props) or 0
             else:
                 # sum a list of properties

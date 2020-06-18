@@ -13,6 +13,13 @@ class SampleRecipeSetterUpper:
 
     __single = None
 
+    @classmethod
+    def instance(cls):
+        if SampleRecipeSetterUpper.__single is None:
+            SampleRecipeSetterUpper.__single = cls()
+
+        return SampleRecipeSetterUpper.__single
+
     recipes = {
         'simple recipe' : {
             'recipe' : {'title':'Simple Test','cuisine':'Indian','instructions':'Cook as usual','modifications':'Unless you want to get fancy',
@@ -55,9 +62,6 @@ class SampleRecipeSetterUpper:
         }
 
     def __init__ (self):
-        print('Instantiate SampleRecipeSetterUpper',self)
-        if SampleRecipeSetterUpper.__single: raise SampleRecipeSetterUpper.__single
-        else: SampleRecipeSetterUpper.__single = self
         self.db = gourmet.backends.db.get_database()
         for rec in self.recipes:
             self.add_rec(self.recipes[rec])
@@ -84,29 +88,34 @@ class SampleRecipeSetterUpper:
         print('^^^^^^^^^^^^^^^^^^^^')
 
 def setup_sample_recs ():
-    try:
-        return SampleRecipeSetterUpper()
-    except SampleRecipeSetterUpper as srsu:
-        print('Returning single...')
-        return srsu
+    return SampleRecipeSetterUpper.instance()
+# FIXME: We're instantiating this class for side effects. Rethink that.
 
 class TestSetterUpper (unittest.TestCase):
-     def setUp (self):
-         setup_sample_recs()
+    def setUp (self):
+        setup_sample_recs()
 
-     def testSetup (self):
-         from gourmet.GourmetRecipeManager import get_application, GourmetApplication
-         #GourmetApplication.__single = None
-         app = get_application(); app.window.show()
-         from gi.repository import Gtk
-         Gtk.main()
+    # FIXME: What is this meant to test? It just opens the GUI and hangs.
+    @unittest.skip("GUI hangs tests")
+    def testSetup (self):
+        from gourmet.GourmetRecipeManager import get_application, GourmetApplication
+        #GourmetApplication.__single = None
+        app = get_application(); app.window.show()
+        from gi.repository import Gtk
+        Gtk.main()
+
+import sys
 
 class TestExports (unittest.TestCase):
     def setUp (self):
+        print("start setUp", file=sys.stderr)
         self.sample_recs = setup_sample_recs()
         self.recs = self.sample_recs.recipes
+        print("in setUp 1", file=sys.stderr)
         self.em = exportManager.get_export_manager()
+        print("in setUp 2", file=sys.stderr)
         self.db = gourmet.backends.db.get_database()
+        print("finish setUp", file=sys.stderr)
 
     def testMultipleExporters (self):
 
@@ -114,6 +123,7 @@ class TestExports (unittest.TestCase):
             self.assertTrue(False,errortext+'\n\n'+tb)
 
         for format,plugin in list(self.em.plugins_by_name.items()):
+            print(format, file=sys.stderr)
             filters = plugin.saveas_filters
             ext = filters[-1][-1].strip('*.')
             exceptions = []

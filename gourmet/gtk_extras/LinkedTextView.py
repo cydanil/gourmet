@@ -19,10 +19,7 @@
 # Largely based on hypertext.py example in pygtk docs by
 # Maik Hertha <maik.hertha@berlin.de>
 
-from gi.repository import Pango
-from gi.repository import Gtk
-from gi.repository import GObject
-from gi.repository import Gdk
+from gi.repository import Gdk, GObject, Gtk, Pango
 import re, xml.sax.saxutils
 from .TextBufferMarkup import PangoBuffer
 from gourmet.gdebug import debug
@@ -90,8 +87,8 @@ class LinkedTextView (Gtk.TextView):
         }
 
     def __init__ (self):
-        GObject.GObject.__init__(self)
-        GObject.GObject.__init__(self)
+        # GObject.GObject.__init__(self) # do we need both constructor calls?
+        Gtk.TextView.__init__(self)
         self.set_buffer(self.make_buffer())
         buf = self.get_buffer()
         self.set_text = buf.set_text

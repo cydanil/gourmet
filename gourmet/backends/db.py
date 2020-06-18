@@ -1,7 +1,8 @@
-from functools import cmp_to_key
+from gi.repository import Gtk
 import shutil
 from gourmet.gdebug import debug, TimeAction, debug_decorator
 import re, string, os.path, time
+from typing import Mapping, Optional, List, Any, Tuple
 from gettext import gettext as _
 import gourmet.gglobals as gglobals
 from gourmet import Undo, keymanager, convert
@@ -56,11 +57,11 @@ def fix_colnames (dict, *tables):
 def make_simple_select_arg (criteria,*tables):
     args = []
     for k,v in list(fix_colnames(criteria,*tables).items()):
-        if type(v) in [str,str]:
+        if isinstance(v, str):
             v = str(v)
-        if type(v)==tuple:
+        if isinstance(v, tuple):
             operator,value = v
-            if type(value) in [str,str]:
+            if isinstance(value, str):
                 value = str(value)
             if operator=='in':
                 args.append(k.in_(value))
@@ -451,7 +452,6 @@ class RecData (Pluggable, BaseException):
         print('You can use it to restore if something ugly happens.')
         shutil.copy(self.filename,backup_file_name) # Make a backup...
         import gourmet.gtk_extras.dialog_extras as de
-        from gi.repository import Gtk
         de.show_message(
             title=_("Upgrading database"),
             label=_("Upgrading database"),
@@ -792,7 +792,7 @@ class RecData (Pluggable, BaseException):
     def __get_joins (self, searches):
         joins = []
         for s in searches:
-            if type(s)==tuple:
+            if isinstance(s, tuple):
                 joins.append(self.__get_joins(s[0]))
             else:
                 if s['column'] == 'category':
@@ -805,13 +805,14 @@ class RecData (Pluggable, BaseException):
         return joins
 
     def get_criteria (self,crit):
-        if type(crit)==tuple:
+        if isinstance(crit, tuple):
             criteria,logic = crit
             if logic=='and':
                 return and_(*[self.get_criteria(c) for c in criteria])
             elif logic=='or':
                 return or_(*[self.get_criteria(c) for c in criteria])
-        elif type(crit)!=dict: raise TypeError
+        elif not isinstance(crit, dict):
+            raise TypeError
         else:
             #join_crit = None # if we need to add an extra arg for a join
             if crit['column']=='category':
@@ -836,6 +837,8 @@ class RecData (Pluggable, BaseException):
                 subtable = None
                 col = getattr(self.recipe_table.c,crit['column'])
             # Make sure we're using unicode!
+            # FIXME: This used to convert bytes to unicode.
+            #  Is it still needed?
             if (type(crit.get('search','')) != str
                 and type(crit.get('search','')) in (str,)):
                 crit['search'] = str(crit['search'])
@@ -891,9 +894,12 @@ class RecData (Pluggable, BaseException):
                   ]
         return [x for x in retval if x is not None] # Don't return null values
 
-    def get_ingkeys_with_count (self, search={}):
+    def get_ingkeys_with_count(self, search: Optional[Mapping[str, Any]] = None) -> List[Tuple[int, str]]:
         """Get unique list of ingredient keys and counts for number of times they appear in the database.
         """
+        if search is None:
+           search = {}
+
         if search:
             col = getattr(self.ingredients_table.c,search['column'])
             operator = search.get('operator','LIKE')
@@ -901,8 +907,10 @@ class RecData (Pluggable, BaseException):
                 criteria = col.like(search['search'])
             elif operator=='REGEXP':
                 criteria = col.op('REGEXP')(search['search'])
+            elif operator == 'CONTAINS':
+                criteria = col.contains(search['search'])
             else:
-                criteria = col==crit['search']
+                criteria = (col == search['search'])
             result =  sqlalchemy.select(
                 [sqlalchemy.func.count(self.ingredients_table.c.ingkey).label('count'),
                  self.ingredients_table.c.ingkey],
@@ -911,7 +919,7 @@ class RecData (Pluggable, BaseException):
                    'order_by':make_order_by([],self.ingredients_table,count_by='ingkey'),
                    }
                 ).execute().fetchall()
-        else:
+        else:  # return all ingredient keys with counts
             result =  sqlalchemy.select(
                 [sqlalchemy.func.count(self.ingredients_table.c.ingkey).label('count'),
                  self.ingredients_table.c.ingkey],
@@ -938,7 +946,7 @@ class RecData (Pluggable, BaseException):
         try:
             to_del = []
             for k in new_values_dic:
-                if type(k) not in [str,str]:
+                if not isinstance(k, str):
                     to_del.append(k)
             for k in to_del:
                 v = new_values_dic[k]
@@ -1144,10 +1152,9 @@ class RecData (Pluggable, BaseException):
             try:
                 img = ImageExtras.get_image_from_string(recdic['image'])
                 thumb = ImageExtras.resize_image(img,40,40)
-                ofi = io.StringIO()
+                ofi = io.BytesIO()
                 thumb.save(ofi,'JPEG')
                 recdic['thumb']=ofi.getvalue()
-                ofi.close()
             except:
                 del recdic['image']
                 print("""Warning: gourmet couldn't recognize the image.
@@ -1158,10 +1165,8 @@ class RecData (Pluggable, BaseException):
                 import traceback
                 traceback.print_stack()
         for k,v in list(recdic.items()):
-            try:
-                recdic[k]=str(v.strip())
-            except:
-                pass
+            if isinstance(v, str):
+                recdic[k] = v.strip()
 
     def modify_ings (self, ings, ingdict):
         # allow for the possibility of doing a smarter job changing
@@ -1263,7 +1268,7 @@ class RecData (Pluggable, BaseException):
             for k,v in list(dic.items()): print('KEY:',k,'of type',type(k),'VALUE:',v,'of type',type(v))
             raise
         else:
-            if type(ret)==int:
+            if isinstance(ret, int):
                 ID = ret
                 ret = self.get_rec(ID)
             else:
@@ -1392,9 +1397,11 @@ class RecData (Pluggable, BaseException):
 
     def _force_unicode (self, dic):
        for k,v in list(dic.items()):
-            if type(v)==str and k not in ['image','thumb']:
-                # force unicode...
-                dic[k]=str(v)
+           # FIXME: The translation to Python 3 has made this a no-op.
+           #  Is it still needed?
+           if isinstance(v, str) and k not in ['image','thumb']:
+               # force unicode...
+               dic[k]=str(v)
 
     def do_modify_rec (self, rec, dic):
         """This is what other DBs should subclass."""
@@ -1483,7 +1490,8 @@ class RecData (Pluggable, BaseException):
 
     def delete_rec (self, rec):
         """Delete recipe object rec from our database."""
-        if type(rec)!=int: rec=rec.id
+        if not isinstance(rec, int):
+            rec = rec.id
         debug('deleting recipe ID %s'%rec,0)
         self.delete_by_criteria(self.recipe_table,{'id':rec})
         self.delete_by_criteria(self.categories_table,{'recipe_id':rec})
@@ -1522,36 +1530,31 @@ class RecData (Pluggable, BaseException):
                 group=i.inggroup
             if group == None:
                 group = n; n+=1
-            if not hasattr(i,'position'):
+
+            position = getattr(i, 'position', None)
+            if position is None:
                 print('Bad: ingredient without position',i)
-                i.position=defaultn
+                position = defaultn
                 defaultn += 1
             if group in groups:
                 groups[group].append(i)
                 # the position of the group is the smallest position of its members
                 # in other words, positions pay no attention to groups really.
-                if i.position < group_order[group]: group_order[group]=i.position
+                if position < group_order[group]:
+                    group_order[group] = position
             else:
-                groups[group]=[i]
-                group_order[group]=i.position
+                groups[group] = [i]
+                group_order[group] = position
         # now we just have to sort an i-listify
-        def sort_groups (x,y):
-            if group_order[x[0]] > group_order[y[0]]: return 1
-            elif group_order[x[0]] == group_order[y[0]]: return 0
-            else: return -1
 
-        alist = list(sorted(groups.items(), key=cmp_to_key(sort_groups)))
+        alist = list(sorted(groups.items(), key=lambda x: group_order[x[0]]))
 
-        def sort_ings (x,y):
-            if x.position > y.position: return 1
-            elif x.position == y.position: return 0
-            else: return -1
         for g,lst in alist:
-            lst.sort(key=cmp_to_key(sort_ings))
+            lst.sort(key=lambda x: x.position)
         final_alist = []
         last_g = -1
         for g,ii in alist:
-            if type(g)==int:
+            if isinstance(g, int):
                 if last_g == None:
                     final_alist[-1][1].extend(ii)
                 else:
@@ -1611,7 +1614,8 @@ class RecData (Pluggable, BaseException):
         amt = self.get_amount(ing,mult)
         unit = ing.unit
         ramount = None
-        if type(amt)==tuple: amt,ramount = amt
+        if isinstance(amt, tuple):
+            amt, ramount = amt
         if adjust_units or preferred_unit_groups:
             if not conv:
                 conv = convert.get_converter()
@@ -1653,12 +1657,13 @@ class RecData (Pluggable, BaseException):
             approx = defaults.unit_rounding_guide.get(unit,0.01)
         else:
             approx = 0.01
-        if type(amt)==tuple:
+        if isinstance(amt, tuple):
             return "%s-%s"%(convert.float_to_frac(amt[0],fractions=fractions,approx=approx).strip(),
                             convert.float_to_frac(amt[1],fractions=fractions,approx=approx).strip())
-        elif type(amt) in (float,int):
+        elif isinstance(amt, (float,int)):
             return convert.float_to_frac(amt,fractions=fractions,approx=approx)
-        else: return ""
+        else:
+            return ""
 
     def get_amount_as_float (self, ing, mode=1): #1 == self.AMT_MODE_AVERAGE
         """Return a float representing our amount.
@@ -1670,7 +1675,7 @@ class RecData (Pluggable, BaseException):
         self.AMT_MODE_HIGH means we take the high number.
         """
         amt = self.get_amount(ing)
-        if type(amt) in [float, int, type(None)]:
+        if isinstance(amt, (float, int, type(None))):
             return amt
         else:
             # otherwise we do our magic
@@ -1686,13 +1691,19 @@ class RecData (Pluggable, BaseException):
     @pluggable_method
     def add_ing_to_keydic (self, item, key):
         #print 'add ',item,key,'to keydic'
+        if not item or not key:
+            return
+
         # Make sure we have unicode...
-        if type(item)==str: item = str(item)
-        if type(key)==str: key = str(key)
-        if not item or not key: return
+        if isinstance(item, bytes):
+            item = item.decode('utf-8', 'replace')
         else:
-            if item: item = str(item)
-            if key: key = str(key)
+            item = str(item)
+        if isinstance(key, bytes):
+            key = key.decode('utf-8', 'replace')
+        else:
+            key = str(key)
+
         row = self.fetch_one(self.keylookup_table, item=item, ingkey=key)
         if row:
             self.do_modify(self.keylookup_table,row,{'count':row.count+1})
@@ -1700,8 +1711,6 @@ class RecData (Pluggable, BaseException):
             self.do_add(self.keylookup_table,{'item':item,'ingkey':key,'count':1})
         # The below code should move to a plugin for users who care about ingkeys...
         for w in item.split():
-            if isinstance(w, bytes):
-                w = w.decode("utf8")
             w = w.casefold()
             row = self.fetch_one(self.keylookup_table,word=str(w),ingkey=str(key))
             if row:
@@ -1846,9 +1855,9 @@ class RecipeManager (RecData):
         """Handed a string, we search for keys that could match
         the ingredient."""
         result=self.km.look_for_key(ing)
-        if type(result)==type(""):
+        if isinstance(result, str):
             return [result]
-        elif type(result)==type([]):
+        elif isinstance(result, list):
             # look_for contains an alist of sorts... we just want the first
             # item of every cell.
             if len(result)>0 and result[0][1]>0.8:
@@ -1870,7 +1879,8 @@ class RecipeManager (RecData):
         # Strip whitespace and bullets...
         d={}
         if isinstance(s, bytes):
-            s = s.decode('utf8').strip(
+            s = s.decode('utf8')
+        s = s.strip(
                 '\u2022\u2023\u2043\u204C\u204D\u2219\u25C9\u25D8\u25E6\u2619\u2765\u2767\u29BE\u29BF\n\t #*+-')
         option_m = re.match('\s*optional:?\s*',s,re.IGNORECASE)
         if option_m:
@@ -2048,9 +2058,11 @@ class dbDic:
         dics = []
         for k in d:
             store_v = d[k]
-            if type(store_v) in (str,):
+            # FIXME: This used to convert bytes to unicode.
+            #  Is it still needed?
+            if isinstance(store_v, str):
                 store_v = str(store_v)
-            if type(k) in (str,):
+            if isinstance(k, str):
                 k = str(k)
             dics.append({self.kp:k,self.vp:store_v})
         self.vw.insert().execute(*dics)
@@ -2083,41 +2095,10 @@ class dbDic:
             ret.append((key,val))
         return ret
 
-# To change
+# TODO:
 # fetch_one -> use whatever syntax sqlalchemy uses throughout
 # fetch_all ->
 #recipe_table -> recipe_table
-# To eliminate
-
-def test_db ():
-    import tempfile
-    db = RecData(file=tempfile.mktemp())
-    print('BEGIN TESTING')
-    from db_tests import test_db
-    test_db(db)
-    print('END TESTING')
-
-def add_sample_recs ():
-    for rec,ings in [[dict(title='Spaghetti',cuisine='Italian',category='Easy, Entree'),
-                      [dict(amount=1,unit='jar',item='Marinara Sauce',ingkey='sauce, marinara'),
-                       dict(amount=0.25,unit='c.',item='Parmesan Cheese',ingkey='cheese, parmesan'),
-                       dict(amount=.5,unit='lb.',item='Spaghetti',ingkey='spaghetti, dried')]],
-                     [dict(title='Spaghetti w/ Meatballs',cuisine='Italian',category='Easy, Entree'),
-                      [dict(amount=1,unit='jar',item='Marinara Sauce',ingkey='sauce, marinara'),
-                       dict(amount=0.25,unit='c.',item='Parmesan Cheese',ingkey='cheese, parmesan'),
-                       dict(amount=.5,unit='lb.',item='Spaghetti',ingkey='spaghetti, dried'),
-                       dict(amount=0.5,unit='lb.',item='Meatballs',ingkey='Meatballs, prepared'),
-                       ]],
-                     [dict(title='Toasted cheese',cuisine='American',category='Sandwich, Easy',
-                           servings=2),
-                      [dict(amount=2,unit='slices',item='bread'),
-                       dict(amount=2,unit='slices',item='cheddar cheese'),
-                       dict(amount=2,unit='slices',item='tomato')]]
-                     ]:
-        r = db.add_rec(rec)
-        for i in ings:
-            i['recipe_id']=r.id
-            db.add_ing(i)
 
 def get_database (*args,**kwargs):
     try:

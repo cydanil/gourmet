@@ -17,8 +17,8 @@
 ### USA
 
 
+from gi.repository import Gtk
 from . import validatingEntry
-import gtk, gobject
 import gourmet.convert as convert
 import re
 from gettext import gettext as _
@@ -100,7 +100,7 @@ class RangeEntry (NumberEntry):
             if error2: return error2
 
     def set_value (self, n):
-        if type(n)==tuple:
+        if isinstance(n, tuple):
             if len(n)==1:
                 n = n[0]
             if len(n)>2:

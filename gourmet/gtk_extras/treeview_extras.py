@@ -1,6 +1,5 @@
 from gourmet.gdebug import debug
 from gi.repository import Gtk
-from gi.repository import GObject
 
 def print_tree (mod):
     for row in mod:
@@ -287,13 +286,13 @@ class QuickTree (Gtk.ScrolledWindow):
         which case there is only one column. All items must produce a
         string with str(item)."""
         debug('QuickTree got rows: %s'%rows,0)
-        GObject.GObject.__init__(self)
+        Gtk.ScrolledWindow.__init__(self)
         self.tv=Gtk.TreeView()
         self.rows = rows
         self.titles=titles
         if self.rows:
             first = self.rows[0]
-            if type(first) != type(()) and type(first) != type([]):
+            if not isinstance(first, (tuple, list)):
                 debug('Mappifying!',0)
                 self.rows=[[x] for x in self.rows]
             self.setup_columns()

@@ -28,9 +28,8 @@
 # RecEditorPlugin - given an instance of the recipe editor.
 # DatabasePlugin - given an instance of the base database class.
 
+from gi.repository import GObject, Gtk
 from gourmet import Undo
-from gi.repository import Gtk
-from gi.repository import GObject
 from . import plugin_loader
 from .gtk_extras import fix_action_group_importance
 import sqlalchemy
@@ -498,13 +497,15 @@ class RecEditorModule (UIModule, GObject.GObject, object):
             elif hasattr(widget,'get_text'): val = widget.get_text()
             elif hasattr(widget,'entry'): val = widget.entry.get_text()
             elif hasattr(widget,'get_buffer'): val = widget.get_buffer().get_text()
+            elif isinstance(widget, Gtk.ComboBoxText):
+                val = widget.get_active_text()
             else: raise TypeError("I don't know how to get the value from action %s widget %s"%(action,widget))
             # HAVE TO HANDLE CATEGORIES
             if prop=='category':
                 orig_value = ', '.join(self.rg.rd.get_cats(self.current_rec))
             else:
                 orig_value = getattr(self.current_rec,prop)
-            if type(orig_value) in (str,):
+            if isinstance(orig_value, str):
                 val = val.strip(); orig_value=orig_value.strip()
             else:
                 if not val: val = 0

@@ -66,9 +66,16 @@ class PossiblyCaseInsensitiveDictionary(collections.abc.MutableMapping):
         self.__mapping[norm] = value
 
 
-class Converter(BaseException):
+class Converter:
 
     __single = None
+
+    @classmethod
+    def instance(cls):
+        if Converter.__single is None:
+            Converter.__single = cls()
+
+        return Converter.__single
 
     unit_to_seconds = {
     'seconds':1,
@@ -104,8 +111,6 @@ class Converter(BaseException):
                   ]
 
     def __init__(self):
-        if Converter.__single: raise Converter.__single
-        else: Converter.__single = self
         self.create_conv_table()
         self.create_density_table()
         self.create_cross_unit_table()
@@ -510,7 +515,7 @@ class Converter(BaseException):
         We can also handle amounts handed to us as tuples (as ranges)!"""
         num = amt[0]
         un = amt[1]
-        if type(num)==tuple or type(num)==list:
+        if isinstance(num, (tuple, list)):
             nstring=float_to_frac(num[0],approx=approx).strip()
             if len(num)>1 and num[1]:
                 nstring += "-"
@@ -576,10 +581,7 @@ class Converter(BaseException):
         if seconds: return seconds
 
 def get_converter ():
-    try:
-        return Converter()
-    except Converter as c:
-        return c
+    return Converter.instance()
 
 # Each of our time formatting functions takes two arguments, which
 # allows us to handle fractions in the outside world

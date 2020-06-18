@@ -8,6 +8,9 @@ from selenium import webdriver
 from gettext import gettext as _
 import keyring
 
+from .state import WebsiteTestState
+
+
 global driver
 if 'driver' not in globals():
     driver = None
@@ -99,19 +102,19 @@ class CooksIllustratedPlugin (PluginPlugin):
 
     def test_url (self, url, data):
         if 'cooksillustrated.com' in url:
-            return 5
+            return WebsiteTestState.SUCCESS
         if 'cookscountry.com' in url:
-            return 5
+            return WebsiteTestState.SUCCESS
         if 'americastestkitchen.com' in url:
-            return 5
+            return WebsiteTestState.SUCCESS
         if 'cooksillustrated.com' in data:
-            return 4
+            return WebsiteTestState.SUCCESS_UNKNOWN
         if 'cookscountry.com' in data:
-            return 4
+            return WebsiteTestState.SUCCESS_UNKNOWN
         if 'americastestkitchen.com' in data:
-            return 4
+            return WebsiteTestState.SUCCESS_UNKNOWN
         
-        return 0
+        return WebsiteTestState.FAILED
 
     def get_importer (self, webpage_importer):
 
@@ -122,7 +125,7 @@ class CooksIllustratedPlugin (PluginPlugin):
 
             def maybe_add (self, el, tag, ignoreSlug=False):
                 if el:
-                    if type(el) in [list,BeautifulSoup.ResultSet]:
+                    if isinstance(el, (list,BeautifulSoup.ResultSet)):
                         for e in el:
                             self.maybe_add(e,tag,ignoreSlug)
                     else:

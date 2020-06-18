@@ -409,7 +409,7 @@
                             <property name="layout_style">GTK_BUTTONBOX_DEFAULT_STYLE</property>
                             <property name="spacing">12</property>
                             <child>
-                              <object class="GtkButton" id="">
+                              <object class="GtkButton" id="resetbutton">
                                 <property name="visible">True</property>
                                 <property name="can_default">True</property>
                                 <property name="can_focus">True</property>

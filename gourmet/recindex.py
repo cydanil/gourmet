@@ -563,7 +563,11 @@ class RecIndex:
             sb.set_value(sb.get_adjustment().get_upper())
             return True
 
-    def star_change_cb (self, value, model, treeiter, column_number):
+    def star_change_cb(self,
+                       value: float,
+                       model,  # RecipeModel, now deprecated by self.rmodel
+                       treeiter: Gtk.TreeIter,
+                       column_number: int) -> None:
         # itr = model.convert_iter_to_child_iter(None,treeiter)
         # self.rmodel.set_value(treeiter,column_number,value)
         rec = self.get_rec_from_iter(treeiter)
@@ -574,8 +578,9 @@ class RecIndex:
                 self.history,
                 get_current_rec_method = lambda *args: self.get_selected_recs_from_rec_tree()[0],
                 )
-            # self.rmodel.row_changed(self.rmodel.get_path(treeiter),treeiter)
+            # Update the values in the model
             self.rmodel.update_iter(treeiter)
+            # TODO: Redraw the star widget
 
     def update_modified_recipe(self,rec,attribute,text):
         """Update a modified recipe.

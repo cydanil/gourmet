@@ -1,8 +1,11 @@
 from gi.repository import Gdk, GdkPixbuf, GObject, Gtk
 import gourmet.gglobals as gglobals
 import os.path
-from gettext import gettext as _
 import tempfile
+from typing import Any, Callable, Dict, List, Optional
+
+from gettext import gettext as _
+
 
 try:
     from PIL import Image
@@ -169,12 +172,11 @@ class StarImage (Gtk.Image):
         self.upper = upper
         self.set_value(value)
 
-    def set_value (self, value):
+    def set_value(self, value: float) -> None:
+        # Force the value to be in range
+        value = min(value, self.upper)
+        value = max(0., value)
 
-        """Set value. Silently floor value at 0 and cap it at self.upper"""
-
-        if value > self.upper: value = self.upper
-        if value < 0: value = 0
         self.set_from_pixbuf(
             self.stars.get_pixbuf(value,self.upper)
             )
@@ -182,11 +184,10 @@ class StarImage (Gtk.Image):
 
     def get_value (self): return self.value
 
-    def set_upper (self, value):
-        """Change the upper number of stars allowed.
-
-        Update our image accordingly."""
+    def set_upper (self, upper: int) -> None:
+        """Change the upper number of stars allowed."""
         self.upper = upper
+        # Force an refresh of the widget
         self.set_value(self.value)
 
     def set_text (self, value): self.set_value(int(value))
@@ -245,7 +246,7 @@ class StarButton (Gtk.Button):
         self.get_value = self.image.get_value
         self.set_upper = self.image.set_upper
 
-    def set_value (self, value):
+    def set_value(self, value: float) -> bool:
         self.image.set_value(value)
         if 'changed' in self._custom_handlers_:
             for h in self._custom_handlers_['changed']:
@@ -330,10 +331,10 @@ class TreeWithStarMaker:
                   col_title=_("Rating"),
                   col_position=-1,
                   data_col=0,
-                  handlers=[],
+                  handlers: Optional[List[Callable]] = None,
                   upper=10,
                   editable=True,
-                  properties={}
+                  properties: Optional[Dict[str, Any]] = None
                   ):
         self.tree=tree
         self.star_generator=star_generator

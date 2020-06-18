@@ -1,50 +1,43 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.36.0 -->
 <interface domain="gourmet">
+  <requires lib="gtk+" version="3.0"/>
   <object class="GtkAdjustment" id="adjustment1">
     <property name="upper">5000</property>
-    <property name="lower">0</property>
-    <property name="page_increment">10</property>
     <property name="step_increment">1</property>
-    <property name="page_size">0</property>
-    <property name="value">0</property>
+    <property name="page_increment">10</property>
   </object>
-  <object class="GtkListStore" id="model1">
-    <columns>
-      <column type="gchararray"/>
-    </columns>
-    <data>
-      <row>
-        <col id="0" translatable="yes">servings</col>
-      </row>
-    </data>
-  </object>
-  <!-- interface-requires gtk+ 2.16 -->
-  <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkWindow" id="descriptionEditor">
+    <property name="can_focus">False</property>
     <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
     <child>
       <object class="GtkScrolledWindow" id="descriptionMainWidget">
         <property name="visible">True</property>
         <property name="can_focus">True</property>
-        <property name="hscrollbar_policy">automatic</property>
-        <property name="vscrollbar_policy">automatic</property>
         <child>
           <object class="GtkViewport" id="viewport5">
             <property name="visible">True</property>
+            <property name="can_focus">False</property>
             <child>
               <object class="GtkVBox" id="vbox26">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <child>
                   <object class="GtkHBox" id="hbox24">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="border_width">16</property>
                     <child>
                       <object class="GtkTable" id="table2">
                         <property name="visible">True</property>
+                        <property name="can_focus">False</property>
                         <property name="n_rows">11</property>
                         <property name="n_columns">2</property>
                         <property name="column_spacing">6</property>
                         <property name="row_spacing">6</property>
+                        <child>
+                          <placeholder/>
+                        </child>
                         <child>
                           <object class="GtkEntry" id="linkBox">
                             <property name="visible">True</property>
@@ -65,11 +58,12 @@
                         <child>
                           <object class="GtkLabel" id="linkLabel">
                             <property name="visible">True</property>
-                            <property name="xalign">0</property>
+                            <property name="can_focus">False</property>
                             <property name="label" translatable="yes">_Webpage:</property>
                             <property name="use_underline">True</property>
                             <property name="justify">right</property>
                             <property name="mnemonic_widget">sourceBox</property>
+                            <property name="xalign">0</property>
                           </object>
                           <packing>
                             <property name="top_attach">8</property>
@@ -80,13 +74,17 @@
                         <child>
                           <object class="GtkHBox" id="imageBox">
                             <property name="visible">True</property>
+                            <property name="can_focus">False</property>
                             <child>
                               <object class="GtkImage" id="recImage">
                                 <property name="visible">True</property>
+                                <property name="can_focus">False</property>
                                 <property name="xalign">0</property>
                                 <property name="stock">gtk-missing-image</property>
                               </object>
                               <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
                                 <property name="position">0</property>
                               </packing>
                             </child>
@@ -96,19 +94,22 @@
                                 <property name="can_focus">True</property>
                                 <property name="can_default">True</property>
                                 <property name="receives_default">False</property>
-                                <signal handler="setRecImage" name="clicked"/>
+                                <signal name="clicked" handler="setRecImage" swapped="no"/>
                                 <child>
                                   <object class="GtkAlignment" id="alignment17">
                                     <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
                                     <property name="xscale">0</property>
                                     <property name="yscale">0</property>
                                     <child>
                                       <object class="GtkHBox" id="hbox25">
                                         <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
                                         <property name="spacing">2</property>
                                         <child>
                                           <object class="GtkImage" id="image102">
                                             <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
                                             <property name="stock">gtk-add</property>
                                           </object>
                                           <packing>
@@ -120,6 +121,7 @@
                                         <child>
                                           <object class="GtkLabel" id="label68">
                                             <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
                                             <property name="label" translatable="yes">_Add Image</property>
                                             <property name="use_underline">True</property>
                                           </object>
@@ -136,6 +138,7 @@
                               </object>
                               <packing>
                                 <property name="expand">False</property>
+                                <property name="fill">True</property>
                                 <property name="position">1</property>
                               </packing>
                             </child>
@@ -151,9 +154,10 @@
                         <child>
                           <object class="GtkLabel" id="label67">
                             <property name="visible">True</property>
-                            <property name="xalign">0</property>
+                            <property name="can_focus">False</property>
                             <property name="label" translatable="yes">Image:</property>
                             <property name="use_underline">True</property>
+                            <property name="xalign">0</property>
                           </object>
                           <packing>
                             <property name="top_attach">9</property>
@@ -164,6 +168,7 @@
                         <child>
                           <object class="GtkHButtonBox" id="hbuttonbox2">
                             <property name="visible">True</property>
+                            <property name="can_focus">False</property>
                             <property name="layout_style">start</property>
                             <child>
                               <object class="GtkButton" id="delImageButton">
@@ -171,19 +176,22 @@
                                 <property name="can_focus">True</property>
                                 <property name="can_default">True</property>
                                 <property name="receives_default">False</property>
-                                <signal handler="delRecImage" name="clicked"/>
+                                <signal name="clicked" handler="delRecImage" swapped="no"/>
                                 <child>
                                   <object class="GtkAlignment" id="alignment18">
                                     <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
                                     <property name="xscale">0</property>
                                     <property name="yscale">0</property>
                                     <child>
                                       <object class="GtkHBox" id="hbox26">
                                         <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
                                         <property name="spacing">2</property>
                                         <child>
                                           <object class="GtkImage" id="image103">
                                             <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
                                             <property name="stock">gtk-delete</property>
                                           </object>
                                           <packing>
@@ -195,6 +203,7 @@
                                         <child>
                                           <object class="GtkLabel" id="label69">
                                             <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
                                             <property name="label" translatable="yes">_Remove Image</property>
                                             <property name="use_underline">True</property>
                                           </object>
@@ -232,11 +241,8 @@
                             <property name="can_default">True</property>
                             <property name="has_default">True</property>
                             <property name="width_chars">40</property>
-                            <accessibility>
-
-                            </accessibility>
                             <child internal-child="accessible">
-                              <object class="AtkObject" id="a11y-titleBox1">
+                              <object class="AtkObject" id="titleBox-atkobject">
                                 <property name="AtkObject::accessible-name" translatable="yes">Title</property>
                               </object>
                             </child>
@@ -251,10 +257,11 @@
                         <child>
                           <object class="GtkLabel" id="recipeLabel">
                             <property name="visible">True</property>
-                            <property name="xalign">0</property>
+                            <property name="can_focus">False</property>
                             <property name="label" translatable="yes">_Title:</property>
                             <property name="use_underline">True</property>
                             <property name="mnemonic_widget">titleBox</property>
+                            <property name="xalign">0</property>
                           </object>
                           <packing>
                             <property name="x_options">GTK_FILL</property>
@@ -264,11 +271,12 @@
                         <child>
                           <object class="GtkLabel" id="yieldLabel">
                             <property name="visible">True</property>
-                            <property name="xalign">0</property>
-                            <property name="yalign">0.46000000834465027</property>
+                            <property name="can_focus">False</property>
                             <property name="label" translatable="yes">_Yield:</property>
                             <property name="use_underline">True</property>
                             <property name="mnemonic_widget">yieldsBox</property>
+                            <property name="xalign">0</property>
+                            <property name="yalign">0</property>
                           </object>
                           <packing>
                             <property name="top_attach">1</property>
@@ -280,10 +288,11 @@
                         <child>
                           <object class="GtkLabel" id="categoryLabel">
                             <property name="visible">True</property>
-                            <property name="xalign">0</property>
+                            <property name="can_focus">False</property>
                             <property name="label" translatable="yes">_Category:</property>
                             <property name="use_underline">True</property>
                             <property name="mnemonic_widget">categoryBox</property>
+                            <property name="xalign">0</property>
                           </object>
                           <packing>
                             <property name="top_attach">2</property>
@@ -295,10 +304,11 @@
                         <child>
                           <object class="GtkLabel" id="preptimeLabel">
                             <property name="visible">True</property>
-                            <property name="xalign">0</property>
+                            <property name="can_focus">False</property>
                             <property name="label" translatable="yes">Pre_paration Time:</property>
                             <property name="use_underline">True</property>
                             <property name="mnemonic_widget">preptimeBox</property>
+                            <property name="xalign">0</property>
                           </object>
                           <packing>
                             <property name="top_attach">3</property>
@@ -310,10 +320,11 @@
                         <child>
                           <object class="GtkLabel" id="cooktimeLabel">
                             <property name="visible">True</property>
-                            <property name="xalign">0</property>
+                            <property name="can_focus">False</property>
                             <property name="label" translatable="yes">Coo_king Time:</property>
                             <property name="use_underline">True</property>
                             <property name="mnemonic_widget">cooktimeBox</property>
+                            <property name="xalign">0</property>
                           </object>
                           <packing>
                             <property name="top_attach">4</property>
@@ -325,11 +336,12 @@
                         <child>
                           <object class="GtkLabel" id="cuisineLabel">
                             <property name="visible">True</property>
-                            <property name="xalign">0</property>
+                            <property name="can_focus">False</property>
                             <property name="label" translatable="yes">C_uisine:</property>
                             <property name="use_underline">True</property>
                             <property name="justify">right</property>
                             <property name="mnemonic_widget">cuisineBox</property>
+                            <property name="xalign">0</property>
                           </object>
                           <packing>
                             <property name="top_attach">5</property>
@@ -341,11 +353,12 @@
                         <child>
                           <object class="GtkLabel" id="ratingLabel">
                             <property name="visible">True</property>
-                            <property name="xalign">0</property>
+                            <property name="can_focus">False</property>
                             <property name="label" translatable="yes">_Rating:</property>
                             <property name="use_underline">True</property>
                             <property name="justify">right</property>
                             <property name="mnemonic_widget">ratingBox</property>
+                            <property name="xalign">0</property>
                           </object>
                           <packing>
                             <property name="top_attach">6</property>
@@ -357,11 +370,12 @@
                         <child>
                           <object class="GtkLabel" id="sourceLabel">
                             <property name="visible">True</property>
-                            <property name="xalign">0</property>
+                            <property name="can_focus">False</property>
                             <property name="label" translatable="yes">S_ource:</property>
                             <property name="use_underline">True</property>
                             <property name="justify">right</property>
                             <property name="mnemonic_widget">sourceBox</property>
+                            <property name="xalign">0</property>
                           </object>
                           <packing>
                             <property name="top_attach">7</property>
@@ -373,6 +387,7 @@
                         <child>
                           <object class="GtkComboBoxText" id="sourceBox">
                             <property name="visible">True</property>
+                            <property name="can_focus">False</property>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -386,6 +401,7 @@
                         <child>
                           <object class="GtkComboBoxText" id="cuisineBox">
                             <property name="visible">True</property>
+                            <property name="can_focus">False</property>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -425,11 +441,9 @@
                         <child>
                           <object class="GtkComboBoxText" id="categoryBox">
                             <property name="visible">True</property>
-                            <accessibility>
-
-                            </accessibility>
+                            <property name="can_focus">False</property>
                             <child internal-child="accessible">
-                              <object class="AtkObject" id="a11y-categoryBox1">
+                              <object class="AtkObject" id="categoryBox-atkobject">
                                 <property name="AtkObject::accessible-name" translatable="yes">category</property>
                               </object>
                             </child>
@@ -446,10 +460,12 @@
                         <child>
                           <object class="GtkAlignment" id="alignment27">
                             <property name="visible">True</property>
+                            <property name="can_focus">False</property>
                             <property name="xalign">0</property>
                             <child>
                               <object class="GtkHBox" id="hbox30">
                                 <property name="visible">True</property>
+                                <property name="can_focus">False</property>
                                 <child>
                                   <object class="StarButton" id="ratingBox">
                                     <property name="visible">True</property>
@@ -464,6 +480,7 @@
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
+                                    <property name="fill">True</property>
                                     <property name="position">0</property>
                                   </packing>
                                 </child>
@@ -482,48 +499,53 @@
                         <child>
                           <object class="GtkHBox" id="hbox1">
                             <property name="visible">True</property>
+                            <property name="can_focus">False</property>
                             <child>
                               <object class="GtkSpinButton" id="yieldsBox">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="digits">2</property>
                                 <property name="adjustment">adjustment1</property>
                                 <property name="climb_rate">1</property>
-                                <accessibility>
-
-                                </accessibility>
+                                <property name="digits">2</property>
                                 <child internal-child="accessible">
-                                  <object class="AtkObject" id="a11y-yieldsBox1">
+                                  <object class="AtkObject" id="yieldsBox-atkobject">
                                     <property name="AtkObject::accessible-name" translatable="yes">Yield</property>
                                   </object>
                                 </child>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
+                                <property name="fill">True</property>
                                 <property name="position">0</property>
                               </packing>
                             </child>
                             <child>
                               <object class="GtkComboBoxText" id="yield_unitBox">
                                 <property name="visible">True</property>
+                                <property name="can_focus">False</property>
                                 <property name="focus_on_click">False</property>
-                                <accessibility>
-
-                                </accessibility>
-                                <property name="model">model1</property>
+                                <property name="has_entry">True</property>
                                 <child>
                                   <object class="GtkCellRendererText" id="renderer1"/>
                                   <attributes>
                                     <attribute name="text">0</attribute>
                                   </attributes>
                                 </child>
+                                <child internal-child="entry">
+                                  <object class="GtkEntry">
+                                    <property name="can_focus">False</property>
+                                  </object>
+                                </child>
                                 <child internal-child="accessible">
-                                  <object class="AtkObject" id="a11y-yield_unitBox1">
+                                  <object class="AtkObject" id="yield_unitBox-atkobject">
                                     <property name="AtkObject::accessible-name" translatable="yes">Yield Unit</property>
                                   </object>
                                 </child>
                               </object>
                               <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="padding">1</property>
                                 <property name="position">1</property>
                               </packing>
                             </child>
@@ -537,9 +559,6 @@
                             <property name="y_options">GTK_SHRINK | GTK_FILL</property>
                           </packing>
                         </child>
-                        <child>
-                          <placeholder/>
-                        </child>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -550,6 +569,8 @@
                     </child>
                   </object>
                   <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
                     <property name="position">0</property>
                   </packing>
                 </child>
@@ -559,5 +580,19 @@
         </child>
       </object>
     </child>
+    <child type="titlebar">
+      <placeholder/>
+    </child>
+  </object>
+  <object class="GtkListStore" id="model1">
+    <columns>
+      <!-- column-name gchararray -->
+      <column type="gchararray"/>
+    </columns>
+    <data>
+      <row>
+        <col id="0" translatable="yes">servings</col>
+      </row>
+    </data>
   </object>
 </interface>

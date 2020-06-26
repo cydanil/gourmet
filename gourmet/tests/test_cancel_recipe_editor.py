@@ -1,13 +1,12 @@
 from pathlib import Path
-import warnings
 
-from dogtail import procedural
+from dogtail.procedural import click, focus, keyCombo
 from dogtail import tree
 from dogtail.utils import run
 
 
 def test_cancel_edit_in_recipe_editor():
-    warnings.filterwarnings("error")
+    """Dogtail integration test: recipe editor behaves as intended on saves."""
 
     dbpath = Path(__file__).parent / 'old_databases' / 'current' / 'recipes.db'
     cmd = f"gourmet --database-url sqlite:///{dbpath}"
@@ -23,27 +22,35 @@ def test_cancel_edit_in_recipe_editor():
     assert gourmet is not None, "Could not find Gourmet instance!"
 
     # Get the first recipe in the list
-    procedural.focus.table()
-    procedural.keyCombo("<Up>")
+    focus.table()
+    keyCombo("<Up>")
 
     # Open it, and its recipe editor, to add ingredients
-    procedural.keyCombo("<Ctrl>o")
-    procedural.click("Edit ingredients")
+    keyCombo("<Ctrl>o")
+    click("Edit ingredients")
 
     # Focus on the recipe editor and add a new ingredient
-    procedural.focus.window("Fancy Recipe (Edit)")
-    procedural.focus.text()
-    procedural.type("1 cup flour")
-    procedural.keyCombo("<Enter>")
+    focus.window("Fancy Recipe (Edit)")
+    focus.text()
+    type("1 cup flour")
+    keyCombo("<Enter>")
 
     # Close the window and cancel when asked to save changes
-    procedural.keyCombo("<Alt><F4>")
-    procedural.click("Cancel")
+    keyCombo("<Alt><F4>")
+    click("Cancel")
 
     # Assert that the recipe editor is still open
-    procedural.focus.window("Fancy Recipe (Edit)")
+    focus.window("Fancy Recipe (Edit)")
 
-    # Close the application like savages
+    # Close the window using a different shortcut
+    keyCombo("<Ctrl>W")
+    # Use a shortcut to validate saving, as dogtail does not find the button :/
+    keyCombo("<Alt>S")
+
+    # There are now two windows, the recipe card, and main window
+    # Close them successively to quit the application
+    keyCombo("<Alt><F4>")
+    keyCombo("<Alt><F4>")
 
 
 if __name__ == "__main__":

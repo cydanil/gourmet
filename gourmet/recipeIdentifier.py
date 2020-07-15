@@ -11,6 +11,7 @@ functions.
 
 """
 
+from gi.repository import Gtk
 import xml.sax.saxutils
 from gourmet import convert
 import hashlib, difflib, types, re
@@ -90,7 +91,7 @@ def format_ing_text (ing_alist,rd,conv=None):
             if a: istring.append(a)
             if u: istring.append(u)
             if i.item: istring.append(i.item)
-            if (type(i.optional)!=str and i.optional) or i.optional=='yes':
+            if (not isinstance(i.optional, str) and i.optional) or i.optional=='yes':
                     istring.append(_('(Optional)'))
             if i.refid: istring.append('=>%s'%i.refid)
             if i.ingkey: istring.append('key=%s'%i.ingkey)
@@ -200,10 +201,8 @@ def merge_recipes (rd, recs):
                 continue
             elif not value:
                 value = v
-            elif (v != value):
-                if ((type(v) in (str,)
-                     and
-                     type(value) in (str,))
+            elif v != value:
+                if ((isinstance(v, str) and isinstance(value, str))
                     and v.lower()==value.lower()):
                     continue
                 else:
@@ -231,7 +230,6 @@ def format_ingdiff_line (s):
     return s
 
 def show_ing_diff (idiff):
-    from gi.repository import Gtk
     left, right = idiff
     ls = Gtk.ListStore(str,str)
     for n in range(len(left)):
@@ -250,7 +248,7 @@ def show_ing_diff (idiff):
 
 
 if __name__ == '__main__':
-    import recipeManager, gtk
+    import recipeManager
     rd = recipeManager.default_rec_manager()
     r1 = 33
     r2 = 241

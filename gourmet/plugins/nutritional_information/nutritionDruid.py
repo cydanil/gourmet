@@ -1,4 +1,4 @@
-import gtk, gobject
+from gi.repository import GObject, Gtk
 import gourmet.convert as convert
 import gourmet.gglobals as gglobals
 from gourmet.gtk_extras.mnemonic_manager import MnemonicManager
@@ -70,10 +70,12 @@ class SpecialAction:
     def dehighlight_action (self,*args):
         for n,c in enumerate(self.all_controls):
             c.set_sensitive(self.prev_states[n])
-        if self.initially_hidden==True:
-            for w in self.highlight_widgets: w.hide()
-        if type(self.initially_hidden)==list:
-            for w in self.initially_hidden: w.hide()
+        if self.initially_hidden is True:
+            for w in self.highlight_widgets:
+                w.hide()
+        if isinstance(self.initially_hidden, list):
+            for w in self.initially_hidden:
+                w.hide()
         for c in self.hide_on_highlight:
             c.show()
 
@@ -120,7 +122,7 @@ class NutritionUSDAIndex:
         search for only some of the words in txt. If that fails, we'll
         set the search to blank.
         """
-        words = re.split('\W+',txt)
+        words = re.split(r'\W+',txt)
         # always search raw if possible... (it gets us the real thing
         # vs. canned/frozen/soup/babyfood, etc.)
         if 'raw' not in words:
@@ -208,7 +210,7 @@ class NutritionUSDAIndex:
         txt = self.usdaSearchEntry.get_text()
         if self.__last_search__ == txt and self.group == self.__last_group__:
             return
-        words = re.split('\W+',txt)
+        words = re.split(r'\W+',txt)
         groups = self.rd.fetch_food_groups_for_search(words)
         cur_active = cb.cb_get_active_text(self.foodGroupComboBox)
         groups = [self.ALL_GROUPS] + groups
@@ -624,7 +626,8 @@ class NutritionInfoDruid (GObject.GObject):
     def apply_custom (self, *args):
         nutinfo = self.nutrition_info.copy()
         for k,v in list(nutinfo.items()):
-            if type(v)==int or type(v)==float: nutinfo[k]=v*self.custom_factor
+            if isinstance(v, (int, float)):
+                nutinfo[k] = v*self.custom_factor
             # Special case fat, which is listed as one item but is in
             # fact a combination of 3. We'll have to fudge the info
             # about mono- v. poly- unsaturated fats.

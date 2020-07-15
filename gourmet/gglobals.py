@@ -1,10 +1,6 @@
 import os, os.path, re
-import gi
-gi.require_version('Gtk', '3.0')
-from gi.repository import GObject
-from gi.repository import Gtk
-from gi.repository import Gdk
-from gi.repository import GdkPixbuf
+from gi.repository import Gdk, GdkPixbuf, GObject, Gtk
+
 import tempfile
 from .gdebug import debug
 from .OptionParser import args
@@ -21,7 +17,7 @@ else:
         # http://stackoverflow.com/questions/2608200/problems-with-umlauts-in-python-appdata-environvent-variable
         # We might drop this workaround with Python 3 (all strings are unicode)
         # and/or GTK+ 3 (use Glib.get_home_dir()).
-        APPDATA = windows.getenv('APPDATA').decode('utf-8')
+        APPDATA = windows.getenv('APPDATA')
         gourmetdir = os.path.join(APPDATA,'gourmet')
     else:
         gourmetdir = os.path.join(os.path.expanduser('~'),'.gourmet')

@@ -1,6 +1,4 @@
-from gi.repository import Gtk
-from gi.repository import Gdk
-from gi.repository import GObject
+from gi.repository import Gdk, GdkPixbuf, GObject, Gtk
 import gourmet.gglobals as gglobals
 import os.path
 from gettext import gettext as _
@@ -83,7 +81,7 @@ class StarGenerator:
             return pb
 
     def get_full_width (self, max=10):
-        return self.width*max/2
+        return self.width*max//2
 
     def get_image (self, *args, **kwargs):
         """Get an Image (PIL) object representing n/max stars
@@ -110,7 +108,7 @@ class StarGenerator:
                       (self.get_full_width(max),
                        self.height),
                       self.background)
-        for i in range(0,(max/2)):
+        for i in range(0,(max//2)):
             if i*2+2 <= n:
                 to_paste = self.set_region
             elif (i*2)+1 <= n:
@@ -125,26 +123,25 @@ class StarGenerator:
                  self.height))
         return img
 
-    def get_pixbuf_from_image (self, image, make_white_opaque=True):
-
+    def get_pixbuf_from_image(self, image, make_white_opaque=True):
         """Get a pixbuf from a PIL Image.
 
         By default, turn all white pixels transparent.
         """
 
-        is_rgba = image.mode=='RGBA'
-        if is_rgba: rowstride = 4
-        else: rowstride = 3
-        pb=GdkPixbuf.Pixbuf.new_from_data(
+        is_rgba = image.mode == 'RGBA'
+        rowstride = 4 if is_rgba else 3
+
+        pb = GdkPixbuf.Pixbuf.new_from_data(
             image.tobytes(),
             GdkPixbuf.Colorspace.RGB,
             is_rgba,
             8,
             image.size[0],
             image.size[1],
-            (is_rgba and 4 or 3) * image.size[0] #rowstride
-            )
+            rowstride * image.size[0])
         return pb
+
 
 star_generator = StarGenerator()
 
@@ -167,7 +164,7 @@ class StarImage (Gtk.Image):
         If you want the user to be able to change the number of stars,
         use a StarButton.
         """
-        GObject.GObject.__init__(self)
+        Gtk.Image.__init__(self)
         self.stars = star_gen
         self.upper = upper
         self.set_value(value)
@@ -229,7 +226,8 @@ class StarButton (Gtk.Button):
         keyboard.
 
         """
-        self.__gobject_init__()
+        # self.__gobject_init__()
+        Gtk.Button.__init__(self)
         self.add_events(Gdk.EventMask.KEY_PRESS_MASK)
         self.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
         self.connect('button-press-event',
@@ -272,17 +270,13 @@ class StarButton (Gtk.Button):
         return True
 
     def buttonpress_cb (self, widget, event):
-        x,y = event.get_coords()
-        wx,wy = self.image.translate_coordinates(self.image,int(x),int(y))
+        x, y = event.get_coords()  # coordinates relative to widget
+        wx, wy = self.translate_coordinates(self.image, int(x), int(y))  # coordinates relative to star images
+        wx = min(self.image.get_pixbuf().get_width(), max(0, wx))  # clamp x values to star range
+        # clamping of pixel values is fine as the user can click outside the stars of the widget to get to 0 or 10
         self.star_width =  self.image.get_pixbuf().get_width() / self.image.upper
-        star = x / self.star_width + 1
-        star = int(star)
-        if self.image.value >= star:
-            # if we're clicking on a set icon, we want it to go away
-            self.set_value(star-1)
-        else:
-            # otherwise we want it to be filled
-            self.set_value(star)
+        star = x // self.star_width
+        self.set_value(star)
         return True
 
     def keypress_cb (self, widget, event):
@@ -301,7 +295,7 @@ class StarButton (Gtk.Button):
             return True
         elif name in ACTIVATE_KEYS:
             return True
-        elif name in [str(x) for x in range(self.image.upper/2 + 1)]:
+        elif name in [str(x) for x in range(self.image.upper//2 + 1)]:
             self.set_value(int(name)*2)
             return True
 
@@ -400,14 +394,9 @@ class TreeWithStarMaker:
                 itr=mod.get_iter(path)
                 curval=mod.get_value(itr,0)
                 self.star_width = self.cellrenderer.get_property('pixbuf').get_width()/self.upper
-                starval = cellx / self.star_width + 1
+                starval = (cellx + 0.5 * self.star_width) // self.star_width  # we translate this half a half-star since you can't click before 0, as opposed to the method in the widget
                 curval = mod.get_value(itr,self.data_col)
-                if starval > curval:
-                    self.call_handlers(starval, mod, itr, self.data_col)
-                    #mod.set_value(itr,self.col_position,starval)
-                else:
-                    self.call_handlers(starval-1, mod, itr, self.data_col)
-                    #mod.set_value(itr,self.col_position,starval-1)
+                self.call_handlers(starval, mod, itr, self.data_col)
             self.curpath = path
 
     def tree_keypress_callback (self, tv, event):
@@ -428,7 +417,7 @@ class TreeWithStarMaker:
                 #mod.set_value(itr,self.col_position,curval + 1)
                 self.call_handlers(curval + 1, mod, itr, self.data_col)
                 return True
-            elif name in [str(x) for x in range(self.upper/2 + 1)]:
+            elif name in [str(x) for x in range(self.upper//2 + 1)]:
                 #mod.set_value(itr,self.col_position,int(name))
                 self.call_handlers(int(name)*2, mod, itr, self.data_col)
                 return True
@@ -445,7 +434,7 @@ class Tree(Gtk.TreeView):
         for i in range(10):
             for n in range(6):
                 self.store.append(['Test %s%s'%(i,n),n])
-        GObject.GObject.__init__(self)
+        Gtk.TreeView.__init__(self)
         self.set_size_request(300, 200)
         self.set_model(self.store)
         self.set_headers_visible(True)
@@ -465,7 +454,7 @@ if __name__ == '__main__':
     s = StarGenerator()
     for i in range(10):
         hb = Gtk.HBox()
-        hb.pack_start(StarButton(s,start_value=i),fill=False,expand=False)
+        hb.pack_start(StarButton(s,start_value=i),False,False,0)
         vb.add(hb)
     w=Gtk.Window()
     w.add(vb)

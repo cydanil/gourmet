@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-from gi.repository import Gtk
+from gi.repository import GObject, Gtk
 from . import cb_extras
-from gi.repository import GObject
 
 class CustomOption (Gtk.HBox):
 
@@ -12,8 +11,8 @@ class CustomOption (Gtk.HBox):
         }
 
     def __init__ (self):
-        GObject.GObject.__init__(self)
-        GObject.GObject.__init__(self)
+        # GObject.GObject.__init__(self)
+        Gtk.HBox.__init__(self)
         raise NotImplementedError
 
     def get_value (self):
@@ -32,7 +31,7 @@ class OptionTable (Gtk.Table):
 
     def __init__ (self, options=([]), option_label=None, value_label=None,
                   changedcb=None, xpadding=5, ypadding=5):
-        GObject.GObject.__init__(self)
+        Gtk.Table.__init__(self)
         self.options=options
         self.defaults = options[0:]
         self.xpadding = xpadding
@@ -74,7 +73,7 @@ class OptionTable (Gtk.Table):
                 w = v
                 self.widgets.append([v,'get_value','set_value'])
                 v.connect('changed',lambda * args: self.emit('changed'))
-            elif type(v)==type(True):
+            elif isinstance(v, bool):
                 w=Gtk.CheckButton()
                 w.set_active(v)
                 # widgets contains the widget, the get method and the set method
@@ -82,16 +81,16 @@ class OptionTable (Gtk.Table):
                 w.connect('toggled',lambda *args: self.emit('changed'))
                 if self.changedcb:
                     w.connect('toggled',self.changedcb)
-            elif type(v) in [type(""),type('')]:
+            elif isinstance(v, str):
                 w=Gtk.Entry()
                 w.set_text(v)
                 self.widgets.append([w, 'get_text', 'set_text'])
                 w.connect('changed',lambda *args: self.emit('changed'))
                 if self.changedcb:
                     w.connect('changed',self.changedcb)
-            elif type(v)==type(1) or type(v)==type(float(1)):
+            elif isinstance(v, (int, float)):
                 adj = Gtk.Adjustment(value=0, lower=0, upper=100*(v or 1), step_incr=(v or 1)*0.1, page_incr=(v or 1)*0.5)
-                if type(v)==type(1):
+                if isinstance(v, int):
                     # if an integer...
                     w=Gtk.SpinButton(adj, digits=0)
                     self.widgets.append([w,'get_value_as_int','set_value'])
@@ -102,7 +101,7 @@ class OptionTable (Gtk.Table):
                 w.connect('changed',lambda *args: self.emit('changed'))
                 if self.changedcb:
                     w.connect('changed',self.changedcb)
-            elif type(v) in (list,tuple):
+            elif isinstance(v, (list, tuple)):
                 default,value_list = v
                 w = Gtk.ComboBoxText()
                 for itm in value_list:
@@ -131,7 +130,7 @@ class OptionTable (Gtk.Table):
     def set_option (self, n, val):
         widget,get_method,set_method=self.widgets[n]
         self.options[n][1]=val
-        if type(set_method) in [str,str]:
+        if isinstance(set_method, str):
             getattr(widget,set_method)(val)
         else:
             set_method(widget,val)

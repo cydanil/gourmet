@@ -1,4 +1,7 @@
-import exporter, PyRTF, types
+from gi.repository import Pango
+import xml.sax.saxutils
+import PyRTF, types
+from . import exporter
 from gourmet import convert
 from gourmet.gdebug import debug
 from gourmet.ImageExtras import write_image_tempfile
@@ -91,7 +94,6 @@ class rtf_exporter (exporter.exporter_mult):
             p = PyRTF.Paragraph(self.ss.ParagraphStyles.Normal)
             # this code is partly copied from handle_markup in
             # exporter.py (a bit dumb, I know...)
-            import pango, xml.sax.saxutils
             try:
                 al,txt,sep = Pango.parse_markup(par,'\x00')
             except:
@@ -179,6 +181,6 @@ if __name__ == '__main__':
                     'mode':'mult_exporter',
                     'file':'/tmp/test_recs.rtf',
                     'prog':lambda *args,**kwargs: sys.stderr.write("%s%s"%(args,kwargs)),
-                    'out':file('/tmp/test_rec.rtf','wb'),
+                    'out':open('/tmp/test_rec.rtf', 'wb'),
                     })
 

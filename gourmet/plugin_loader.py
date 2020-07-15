@@ -20,7 +20,7 @@ except:
 # pointing to the module (with the module parameter) and giving the
 # name and comment for the plugin.
 
-class MasterLoader(BaseException):
+class MasterLoader:
 
     # Singleton design pattern lifted from:
     # http://www.python.org/workshops/1997-10/proceedings/savikko.html
@@ -48,10 +48,14 @@ class MasterLoader(BaseException):
         ]
     active_plugin_filename = os.path.join(gglobals.gourmetdir,'active_plugins')
 
+    @classmethod
+    def instance(cls):
+        if MasterLoader.__single is None:
+            MasterLoader.__single = MasterLoader()
+
+        return MasterLoader.__single
+
     def __init__ (self):
-        if MasterLoader.__single:
-            raise MasterLoader.__single
-        MasterLoader.__single = self
         self.plugin_directories = [os.path.join(gglobals.gourmetdir,'plugins'), # user plug-ins
                                    os.path.join(current_path,'plugins'), # pre-installed plugins
                                    os.path.join(current_path,'plugins','import_export'), # pre-installed exporter plugins
@@ -146,7 +150,7 @@ class MasterLoader(BaseException):
                         raise
         return depending_on_me
 
-    def activate_plugin_set (self, plugin_set):
+    def activate_plugin_set (self, plugin_set: 'PluginSet'):
         """Activate a set of plugins.
         """
         if plugin_set in self.active_plugin_sets:
@@ -155,8 +159,9 @@ class MasterLoader(BaseException):
         # plugin_set.get_module() returns None if there's been a
         # problem -- we want to raise that problem now.
         if plugin_set.get_module() is None:
-            self.errors[plugin_set]=plugin_set.error.__class__.__name__+': '+plugin_set.error.message
-            raise plugin_set.error
+            e = plugin_set.error
+            self.errors[plugin_set] = f"{type(e).__name__}: {e}"
+            raise e
         self.active_plugin_sets.append(plugin_set.module)
         self.active_plugins.extend(plugin_set.plugins)
         for plugin in plugin_set.plugins:
@@ -165,7 +170,7 @@ class MasterLoader(BaseException):
                     for pluggable in self.pluggables_by_class[klass]:
                         pluggable.plugin_plugin(self.get_instantiated_plugin(plugin))
 
-    def deactivate_plugin_set (self, plugin_set):
+    def deactivate_plugin_set (self, plugin_set: 'PluginSet'):
         # Deactivate any plugin sets that depend upon us...
         for ps in self.check_if_depended_upon(plugin_set):
             self.deactivate_plugin_set(ps)
@@ -215,12 +220,7 @@ class MasterLoader(BaseException):
         self.pluggables_by_class[klass].remove(pluggable)
 
 def get_master_loader ():
-    # Singleton design pattern lifted from:
-    # http://www.python.org/workshops/1997-10/proceedings/savikko.html
-    try:
-        return MasterLoader()
-    except MasterLoader as ml:
-        return ml
+    return MasterLoader.instance()
 
 class PluginSet:
     """A lazy-loading set of plugins.

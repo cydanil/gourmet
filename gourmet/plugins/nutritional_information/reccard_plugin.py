@@ -1,8 +1,8 @@
+from gi.repository import Gtk, Pango
 from .nutritionLabel import NutritionLabel
 from .nutrition import NutritionInfoList, NutritionVapor
 #from gourmet.gglobals import gladeCustomHandlers
 from gourmet.plugin import RecDisplayModule, RecDisplayPlugin
-import gtk, pango
 import os.path
 from gettext import gettext as _
 
@@ -100,7 +100,7 @@ class NutritionDisplayModule (RecDisplayModule):
                 for ni in self.nutinfo:
                     print(ni.__ingobject__)
                 return istr
-            if type(props)==str:
+            if isinstance(props, str):
                 nut_amt = getattr(nutinfo_for_ing,props)
                 tot_amt = getattr(self.nutinfo,props)
             else:

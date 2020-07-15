@@ -165,7 +165,7 @@ class Importer (SuspendableThread):
         timeaction = TimeAction('importer.commit_rec',10)
         for key in ['cuisine','category','title']:
             if key in self.rec:
-                self.rec[key]=str(re.sub('\s+',' ',self.rec[key]).strip())
+                self.rec[key]=str(re.sub(r'\s+',' ',self.rec[key]).strip())
         # if yields/servings can't be recognized as a number, add them
         # to the instructions.
         if 'yields' in self.rec:
@@ -191,7 +191,7 @@ class Importer (SuspendableThread):
                 self._move_to_instructions(self.rec,'servings')
         # Check preptime and cooktime
         for t in ['preptime','cooktime']:
-            if t in self.rec and type(self.rec[t])!=int:
+            if t in self.rec and not isinstance(self.rec[t], int):
                 secs = self.conv.timestring_to_seconds(self.rec[t])
                 if secs != None:
                     self.rec[t]=secs
@@ -206,7 +206,7 @@ class Importer (SuspendableThread):
         # can ask the user how to convert them when we're all done
         # with importing.
         remembered_rating = None
-        if 'rating' in self.rec and type(self.rec['rating']) not in [int,float]:
+        if 'rating' in self.rec and not isinstance(self.rec['rating'], (int, float)):
             if string_to_rating(self.rec['rating']):
                 self.rec['rating']=string_to_rating(self.rec['rating'])
             else:
@@ -270,7 +270,7 @@ class Importer (SuspendableThread):
 
     def parse_yields (self, str):
         '''Parse number and field.'''
-        m = re.match("(?P<prefix>\w+\s+)?(?P<num>[0-9/. ]+)(?P<unit>\s*\w+)?",str)
+        m = re.match(r"(?P<prefix>\w+\s+)?(?P<num>[0-9/. ]+)(?P<unit>\s*\w+)?",str)
         if m:
             num = m.group('num')
             num = convert.frac_to_float(num)
@@ -323,7 +323,7 @@ class Importer (SuspendableThread):
         # Strip whitespace...
         for key in ['item','ingkey','unit']:
             if key in self.ing:
-                self.ing[key]=re.sub('\s+',' ',self.ing[key]).strip()
+                self.ing[key]=re.sub(r'\s+',' ',self.ing[key]).strip()
         if not (
             ('refid' in self.ing and
              self.ing['refid'])
@@ -419,7 +419,7 @@ class Importer (SuspendableThread):
 
 NUMBER_REGEXP = convert.NUMBER_REGEXP
 simple_matcher = re.compile(
-    '(%(NUMBER_REGEXP)s+)\s*/\s*([\d]+)'%locals()
+    r'(%(NUMBER_REGEXP)s+)\s*/\s*([\d]+)'%locals()
     )
 
 def parse_range (number_string):
@@ -428,7 +428,7 @@ def parse_range (number_string):
     We will also parse regular numbers, in which case the tuple will
     only have one item.
     """
-    if type(number_string) in [int,float]:
+    if isinstance(number_string, (int, float)):
         return (float(number_string),None)
     nums=convert.RANGE_MATCHER.split(number_string.strip())
     if len(nums) > 2:
@@ -454,20 +454,24 @@ class Tester:
             # only compile our regexp when necessary
             self.matcher = re.compile(self.regexp)
         CLOSE=False
-        if type(filename) in [str,str]:
-            self.ofi = open(filename,'r')
+        if isinstance(filename, str):
+            # Latin-1 can decode any bytes, letting us open ASCII-compatible
+            # text files and sniff their contents - e.g. for XML tags -
+            # without worrying too much about their real text encoding.
+            ofi = open(filename, 'r', encoding='latin1')
             CLOSE=True
-        else: self.ofi=filename
-        l = self.ofi.readline()
-        while l:
-            if self.matcher.match(l):
-                self.ofi.close()
-                return True
-            l = self.ofi.readline()
-        if CLOSE:
-            self.ofi.close()
         else:
-            self.ofi.seek(0)
+            ofi = filename
+
+        try:
+            for l in ofi:
+                if self.matcher.match(l):
+                    return True
+        finally:
+            if CLOSE:
+                ofi.close()
+            else:
+                ofi.seek(0)
 
 class RatingConverter:
 
@@ -497,7 +501,7 @@ class RatingConverter:
         self.got_conversions = False
 
     def add (self, id, rating):
-        if type(rating)==int:
+        if isinstance(rating, int):
             raise Exception("Why do you need me? id: %(id)s rating: %(rating)s" % locals())
         self.to_convert[id]=rating
 

@@ -1,9 +1,12 @@
 import re, locale, math
+import collections.abc
+from typing import Optional
 from .defaults.defaults import lang as defaults
 from gettext import gettext as _
 from gettext import ngettext
 from .gdebug import debug
 
+# TODO: these should be turned into Enums
 FRACTIONS_ALL = 1
 FRACTIONS_NORMAL = 0
 FRACTIONS_ASCII = -1
@@ -11,34 +14,70 @@ FRACTIONS_OFF = -2
 
 USE_FRACTIONS = FRACTIONS_NORMAL
 
-class PossiblyCaseInsensitiveDictionary (dict):
+class PossiblyCaseInsensitiveDictionary(collections.abc.MutableMapping):
+    """
+    Maps all capitalisation variants of a key to a single value using str.casefold() where possible
 
-    transformations = ["lower","title","upper"]
+    Invariant 1: two keys that have a variant in common, map to the same value (__mapping)
+    Invariant 2: a key that is added can be recalled in its original (__orig)
+    Invariant 3: keys(__orig) == keys(__mapping)
+    """
 
-    def has_key (self, k):
-        if dict.has_key(self,k): return True
+    @staticmethod
+    def __normalization(x):
+        try:
+            return x.casefold()
+        except AttributeError:
+            return x
+
+    def __init__(self, *args, **kwargs):
+        constructor_dict = dict(*args, **kwargs)
+        self.__orig = {}
+        self.__mapping = {}
+        for k, v in constructor_dict.items():
+            self[k] = v
+
+    def __repr__(self):
+        return repr({self.__orig[k]:self.__mapping[k] for k in self.__mapping})
+
+    def __delitem__(self, key):
+        norm = self.__normalization(key)
+        if norm in self.__mapping:
+            del self.__orig[norm]
+            del self.__mapping[norm]
         else:
-            for t in self.transformations:
-                if hasattr(k,t):
-                    if dict.has_key(self,getattr(k,t)()): return True
-        return False
+            raise KeyError(key)
 
-    def __getitem__ (self, k):
-        if dict.has_key(self,k):
-            return dict.__getitem__(self,k)
+    def __getitem__(self, key):
+        norm = self.__normalization(key)
+        if norm in self.__mapping:
+            return self.__mapping[norm]
         else:
-            for t in self.transformations:
-                if hasattr(k,t):
-                    nk = getattr(k,t)()
-                    if dict.has_key(self,nk):
-                        return dict.__getitem__(self,nk)
-        # Raise plain old error
-        dict.__getitem__(self,k)
+            raise KeyError(key)
+
+    def __iter__(self):
+        # this does not return all items for which 'in' is true
+        return iter(self.__orig.values())
+
+    def __len__(self):
+        return len(self.__mapping)
+
+    def __setitem__(self, key, value):
+        norm = self.__normalization(key)
+        self.__orig[norm] = key
+        self.__mapping[norm] = value
 
 
-class Converter(BaseException):
+class Converter:
 
     __single = None
+
+    @classmethod
+    def instance(cls):
+        if Converter.__single is None:
+            Converter.__single = cls()
+
+        return Converter.__single
 
     unit_to_seconds = {
     'seconds':1,
@@ -74,8 +113,6 @@ class Converter(BaseException):
                   ]
 
     def __init__(self):
-        if Converter.__single: raise Converter.__single
-        else: Converter.__single = self
         self.create_conv_table()
         self.create_density_table()
         self.create_cross_unit_table()
@@ -480,7 +517,7 @@ class Converter(BaseException):
         We can also handle amounts handed to us as tuples (as ranges)!"""
         num = amt[0]
         un = amt[1]
-        if type(num)==tuple or type(num)==list:
+        if isinstance(num, (tuple, list)):
             nstring=float_to_frac(num[0],approx=approx).strip()
             if len(num)>1 and num[1]:
                 nstring += "-"
@@ -492,8 +529,8 @@ class Converter(BaseException):
         else:
             return "%s"%nstring
 
-    def timestring_to_seconds (self, timestring):
-        """Take a timestring and parse it into seconds.
+    def timestring_to_seconds(self, timestring: str) -> int:
+        """Take a time string and parse it into seconds.
 
         We assume numbers come before time units - surely this will
         break some languages(?). We'll build the parameter in when the
@@ -505,7 +542,7 @@ class Converter(BaseException):
         # Note the following will be true
         # 1:30 = 1 1/2 hours
         # 00:00:20 = 20 seconds
-        if re.match('^\d\d?:\d\d(:\d\d)?$',timestring):
+        if re.match(r'^\d\d?:\d\d(:\d\d)?$',timestring):
             times = [locale.atof(s) for s in timestring.split(':')]
             if len(times) == 3:
                 h,m,s = times
@@ -532,7 +569,7 @@ class Converter(BaseException):
 
         This logic may be a little fragile for non-English languages.
         """
-        words = re.split('[ \s,;]+',str(timestring))
+        words = re.split(r'[ \s,;]+',str(timestring))
         seconds = 0
         num = []
         for n,w in enumerate(words):
@@ -545,11 +582,8 @@ class Converter(BaseException):
                     num = []
         if seconds: return seconds
 
-def get_converter ():
-    try:
-        return Converter()
-    except Converter as c:
-        return c
+def get_converter():
+    return Converter.instance()
 
 # Each of our time formatting functions takes two arguments, which
 # allows us to handle fractions in the outside world
@@ -566,13 +600,14 @@ time_formatters = {
     'seconds':lambda seconds: ngettext("second","seconds",seconds),
     }
 
-def seconds_to_timestring (time, round_at=None, fractions=FRACTIONS_NORMAL):
-    time = int(time)
+def seconds_to_timestring(time: int,
+                          round_at: Optional[int] = None,
+                          fractions: int = FRACTIONS_NORMAL):
     time_strings = []
     units = list(Converter.unit_to_seconds.items())
-    units.sort(lambda a,b: a[1]<b[1] and 1 or a[1]>b[1] and -1 or 0)
+    units.sort(key=lambda x: x[1], reverse=True)
     for unit,divisor in units:
-        time_covered = time / int(divisor)
+        time_covered = time // int(divisor)
         # special case hours, which we English speakers anyway are
         # used to hearing in 1/2s -- i.e. 1/2 hour is better than 30
         # minutes.
@@ -646,9 +681,9 @@ all_number_words.sort(
         lambda x,y: ((len(y)>len(x) and 1) or (len(x)>len(y) and -1) or 0)
     ))
 
-NUMBER_WORD_REGEXP = '|'.join(all_number_words).replace(' ','\s+')
+NUMBER_WORD_REGEXP = '|'.join(all_number_words).replace(' ',r'\s+')
 FRACTION_WORD_REGEXP = '|'.join([n for n in all_number_words if NUMBER_WORDS[n]<1.0]
-                                ).replace(' ','\s+')
+                                ).replace(' ',r'\s+')
 
 NORMAL_FRACTIONS = [(1,2),(1,4),(3,4)]
 
@@ -713,7 +748,7 @@ for d in SUB_DICT,SUP_DICT:
     for k,v in list(d.items()):
         UNICODE_INTEGERS[v]=k
 
-NUMBER_REGEXP = "[\d"
+NUMBER_REGEXP = r"[\d"
 #for k in UNICODE_INTEGERS.keys(): NUMBER_REGEXP+=k # COVERED by re.UNICODE
 for k in list(UNICODE_FRACTIONS.keys()): NUMBER_REGEXP+=k
 NUMBER_START_REGEXP = NUMBER_REGEXP + ']'
@@ -740,7 +775,7 @@ DIVISOR_REGEXP = "[0-9" + "".join(list(SUB_DICT.values())) + "]+"
 FRACTION_REGEXP = "(" + UNICODE_FRACTION_REGEXP + "|" + DIVIDEND_REGEXP + \
                           SLASH_REGEXP + DIVISOR_REGEXP + ")"
 
-AND_REGEXP = "(\s+%s\s+|\s*[&+]\s*|\s+)"%_('and')
+AND_REGEXP = r"(\s+%s\s+|\s*[&+]\s*|\s+)"%_('and')
 
 # Match a fraction
 if NUMBER_WORD_REGEXP:
@@ -752,17 +787,17 @@ if NUMBER_WORD_REGEXP:
                                                                        )
 
 else:
-    NUM_AND_FRACTION_REGEXP = "((?P<int>%s)+\s+)?(?P<frac>%s)"%(NUMBER_START_REGEXP,FRACTION_REGEXP)
+    NUM_AND_FRACTION_REGEXP = r"((?P<int>%s)+\s+)?(?P<frac>%s)"%(NUMBER_START_REGEXP,FRACTION_REGEXP)
 
 FRACTION_MATCHER = re.compile(NUM_AND_FRACTION_REGEXP,re.UNICODE)
 
-NUMBER_FINDER_REGEXP = "(%(NUM_AND_FRACTION_REGEXP)s|%(NUMBER_NO_RANGE_REGEXP)s)(?=($| |[\s]))"%locals()
+NUMBER_FINDER_REGEXP = r"(%(NUM_AND_FRACTION_REGEXP)s|%(NUMBER_NO_RANGE_REGEXP)s)(?=($| |[\s]))"%locals()
 NUMBER_FINDER = re.compile(NUMBER_FINDER_REGEXP,re.UNICODE)
 
 # Note: the order matters on this range regular expression in order
 # for it to properly split things like 1 - to - 3, which really do
 # show up sometimes.
-RANGE_REGEXP = '([ -]*%s[ -]*|\s*-\s*)'%_('to') # for 'to' used in a range, as in 3-4
+RANGE_REGEXP = r'([ -]*%s[ -]*|\s*-\s*)'%_('to') # for 'to' used in a range, as in 3-4
 RANGE_MATCHER = re.compile(RANGE_REGEXP[1:-1]) # no parens for this one
 
 
@@ -789,7 +824,7 @@ MULTI_WORD_UNIT_REGEXP = '(' + \
 NUMBER_FINDER_REGEXP2 = NUMBER_FINDER_REGEXP.replace('int','int2').replace('frac','frac2')
 
 try:
-    ING_MATCHER_REGEXP = """
+    ING_MATCHER_REGEXP = r"""
  \s* # opening whitespace
  (?P<amount>
  %(NUMBER_FINDER_REGEXP)s # a number

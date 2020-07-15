@@ -189,7 +189,7 @@ class RecipeMergerDialog:
     def do_merge (self, merge_dic, recs, to_keep=None):
         if not to_keep:
             to_keep = recs[0]
-        if type(to_keep)==int:
+        if isinstance(to_keep, int):
             to_keep = self.rd.get_rec(to_keep)
         self.rd.modify_rec(to_keep,merge_dic)
         for r in recs:
@@ -275,11 +275,8 @@ class RecipeMergerDialog:
         self.closeMergeButton.set_sensitive(True)
 
     def auto_merge_current_rec (self, mode):
-        def compare_recs (r1, r2):
-            result = cmp(r1.last_modified,r2.last_modified)
-            if mode==NEWER: return result
-            else: return -result
-        self.current_recs.sort(compare_recs)
+        assert(mode in [NEWER, OLDER]) # TODO make this to an enum and type annotate it
+        self.current_recs.sort(key=lambda x: x.last_modified, reverse=(mode==OLDER))
         keeper = self.current_recs[0]
         tossers = self.current_recs[1:]
         for to_toss in tossers:
@@ -376,7 +373,7 @@ class DiffTable (Gtk.Table):
                   dont_choose=[]):
         self.idiffs = []
         self.diff_dic = diff_dic
-        GObject.GObject.__init__(self)
+        Gtk.Table.__init__(self)
         self.selected_dic = {}
         self.set_col_spacings(6)
         self.set_row_spacings(6)

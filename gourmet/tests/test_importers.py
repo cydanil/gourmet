@@ -1,9 +1,5 @@
-import sys
-from .. import recipeManager as rm
 import time
 import os,os.path,re
-import tempfile
-import traceback
 import unittest
 from ..importers.importManager import ImportManager, ImportFileList
 from ..recipeManager import get_recipe_manager
@@ -58,11 +54,6 @@ class ThreadlessImportManager (ImportManager):
             importer.run()
             self.follow_up(None,importer)
 
-def get_im ():
-    try:
-        return ThreadlessImportManager()
-    except ThreadlessImportManager as im:
-        return im
 
 class ImportTest:
 
@@ -119,7 +110,8 @@ class ImportTest:
         for blobby_attribute in ['instructions','modifications']:
             if test.get(blobby_attribute,False):
                 match_text = test[blobby_attribute]
-                match_text = re.sub('\s+','\s+',match_text)
+                match_text = re.sub(r'\s+',r'\s+',match_text)
+
                 try:
                     assert(re.match(match_text,getattr(rec,blobby_attribute)))
                 except:
@@ -151,7 +143,7 @@ class ImportTest:
 
     @time_me
     def setup_db (self):
-        self.im = get_im()
+        self.im = ThreadlessImportManager.instance()
         self.db = get_recipe_manager(custom_url='sqlite:///:memory:')
 
     @time_me

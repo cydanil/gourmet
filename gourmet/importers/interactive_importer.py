@@ -1,14 +1,16 @@
-from gi.repository import Gtk
+from gettext import gettext as _
+import re
 from xml.sax.saxutils import escape
-from .generic_recipe_parser import RecipeParser
+
+from gi.repository import Gtk, Pango
+
 import gourmet.gtk_extras.cb_extras as cb
 import gourmet.gglobals as gglobals
-from . import importer
-import re
-from gourmet.threadManager import NotThreadSafe
-from . import imageBrowser
 import gourmet.ImageExtras as ImageExtras
-from gettext import gettext as _
+from gourmet.recipeManager import get_recipe_manager
+from gourmet.threadManager import NotThreadSafe
+from . import importer, imageBrowser
+from .generic_recipe_parser import RecipeParser
 
 # TODO
 # 1. Make this interface actually import recipes...
@@ -75,10 +77,7 @@ class ConvenientImporter (importer.Importer):
         self.group = txt.strip()
 
     def add_ing_from_text (self, txt):
-        if not hasattr(self,'db'):
-            import gourmet.backends.db as db
-            self.db = db.get_database()
-        parsed_dict = self.db.parse_ingredient(txt)
+        parsed_dict = get_recipe_manager().parse_ingredient(txt)
         self.ing = parsed_dict
         self.commit_ing()
 
@@ -224,11 +223,10 @@ class InteractiveImporter (ConvenientImporter, NotThreadSafe):
             # Otherwise, there's no clear sane default... we'll just
             # select the current whole line
             cur_mark = self.tb.get_insert()
-            cur_pos=Gtk.TextBuffer.get_iter_at_mark(cur_pos)
+            cur_pos=Gtk.TextBuffer.get_iter_at_mark(cur_mark)
             cur_pos.backward_chars(
                 cur_pos.get_line_offset())
             st = cur_pos
-            end = cur_pos.copy()
             end = cur_pos.forward_line()
         self.label_range(st,end,label)
 
@@ -419,11 +417,7 @@ class InteractiveImporter (ConvenientImporter, NotThreadSafe):
                 self.remove_widget(anchor)
 
     def commit_changes (self):
-        def mark_sorter (a,b):
-            a = self.tb.get_iter_at_mark(a[0]).get_offset()
-            b = self.tb.get_iter_at_mark(b[0]).get_offset()
-            return cmp(a,b)
-        self.labelled.sort(mark_sorter)
+        self.labelled.sort(key=lambda x: self.tb.get_iter_at_mark(x[0]).get_offset())
         if not self.labelled: return
         self.start_rec()
         started = False
@@ -477,8 +471,8 @@ class InteractiveImporter (ConvenientImporter, NotThreadSafe):
                 for i in self.images: ibd.add_image_from_uri(i)
                 ibd.run()
                 if ibd.ret:
-                    ifi = file(imageBrowser.get_image_file(ibd.ret),'r')
-                    image_str = ifi.read(); ifi.close()
+                    with open(imageBrowser.get_image_file(ibd.ret), 'rb') as ifi:
+                        image_str = ifi.read()
                     image = ImageExtras.get_image_from_string(image_str)
                     # Adding image!
                     thumb = ImageExtras.resize_image(image,40,40)
@@ -491,12 +485,12 @@ class InteractiveImporter (ConvenientImporter, NotThreadSafe):
 
     def set_text (self, txt):
         txt = str(txt) # convert to unicode for good measure
-        txt = re.sub('(\n\s*\n)+','\n\n',txt) # Take out extra newlines
+        txt = re.sub(r'(\n\s*\n)+','\n\n',txt) # Take out extra newlines
         txt = self.parser.parse(txt) # Parse
         self.set_parsed(txt)
 
     def set_parsed (self, parsed):
-        #dbg_file = file('/tmp/out','w')
+        #dbg_file = open('/tmp/out','w')
         for chunk,tag in parsed:
             #dbg_file.write(chunk)
             if tag==None:

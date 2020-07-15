@@ -16,8 +16,7 @@
 ### Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301
 ### USA
 
-from gi.repository import GObject
-from gi.repository import Gtk
+from gi.repository import GObject, Gtk
 import time
 
 TIME_TO_READ = 1000
@@ -30,7 +29,7 @@ class ValidatingEntry (Gtk.VBox, GObject.GObject):
         }
 
     def __init__ (self, conv=None):
-        GObject.GObject.__init__(self)
+        Gtk.VBox.__init__(self)
         self.warning_box = Gtk.HBox()
         self.entry = Gtk.Entry()
         self.image = Gtk.Image()
@@ -38,9 +37,7 @@ class ValidatingEntry (Gtk.VBox, GObject.GObject):
         self.warning_box.add(self.image)
         self.image.set_from_icon_name(Gtk.STOCK_DIALOG_WARNING,Gtk.IconSize.MENU)
         self.warning_box.add(self.warning)
-        a = Gtk.Alignment.new()
-        a.set_property('xalign',0)
-        a.set_property('xscale',1)
+        a = Gtk.Alignment(xscale=1)
         a.add(self.entry)
         a.show()
         self.entry.show()

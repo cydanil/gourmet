@@ -1,11 +1,11 @@
-from gi.repository import Gtk
-from gi.repository import GObject
+from gi.repository import Gdk, GObject, Gtk
 from gourmet.gdebug import debug
 
 class FocusFixer:
     key = None
     def __init__ (self,cbe):
-        self.e=cbe.get_children()[0]
+        children = cbe.get_children()
+        self.e = children[0] if children else cbe
         self.e.connect('key-press-event',self.keypress_event_cb)
         self.e.connect('focus-out-event',self.focus_out_cb)
         self.e.connect('focus-in-event',self.focus_in_cb)
@@ -70,16 +70,16 @@ class setup_typeahead:
         if not newstr: return
         self.str += newstr
         match=self.match_string_in_combo(self.str)
-        if type(match) == type(0):
+        if isinstance(match, int):
             self.cb.set_active(match)
         ## otherwise, perhaps they didn't mean to combine strings
         else:
             self.str = ""
             match=self.match_string_in_combo(newstr)
-            if type(match) == type(0):
+            if isinstance(match, int):
                 self.cb.set_active(match)
                 self.string = newstr
-        if type(match)==type(0):
+        if isinstance(match, int):
             if self.last_timeout: GObject.source_remove(self.last_timeout)
             self.last_timeout=GObject.timeout_add(self.typeahead_timeout, self.reset_str)
 
@@ -100,9 +100,11 @@ def setup_completion (cbe, col=0):
     """Setup an EntryCompletion on a ComboBoxEntry based on the
     items in the ComboBox's model"""
     model = cbe.get_model()
-    entry = cbe.get_children()[0]
-    cbe.entry = entry  # for convenience/backward compatability with Gtk.Combo
-    make_completion(entry, model, col)
+    children = cbe.get_children()
+    if children:
+        entry = children[0]
+        cbe.entry = entry  # for convenience/backward compatibility with Gtk.Combo
+        make_completion(entry, model, col)
 
 def make_completion (entry, model, col=0):
     """Setup completion for an entry based on model."""

@@ -20,8 +20,8 @@ jobs:
     - name: Install Flatpak
       run: |
         sudo apt install flatpak gnome-software-plugin-flatpak
-        flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-        flatpak install flathub org.gnome.Platform//3.36 org.gnome.Sdk//3.36 org.flatpak.Builder
+        sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+        sudo flatpak install flathub org.gnome.Platform//3.36 org.gnome.Sdk//3.36 org.flatpak.Builder
       
     - name: Build Flatpak  # run command in an empty directory with org.flatpak.Gourmet.yml placed in it
       run: >

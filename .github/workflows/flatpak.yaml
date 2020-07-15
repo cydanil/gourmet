@@ -4,7 +4,11 @@ on:
   push:
     tags:
       - '*'
-  workflow_dispatch
+  workflow_dispatch:
+    inputs:
+      unused:
+        description: unused
+        required: false
 
 jobs: 
   flatpak:

@@ -19,7 +19,7 @@ jobs:
     - uses: actions/checkout@v2 
     - name: Install Flatpak
       run: |
-        sudo apt install flatpak
+        sudo apt install flatpak flatpak-builder
         sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
         sudo flatpak install flathub org.gnome.Platform//3.36 org.gnome.Sdk//3.36 org.flatpak.Builder -y
       

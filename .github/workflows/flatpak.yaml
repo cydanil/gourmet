@@ -1,19 +1,25 @@
-on: tag
+on: 
+  push:
+    tags:
+      - '*'
 
 jobs: 
-  build: flatpack
-  - uses: actions/checkout@v2   # automatically clone the repository
+  flatpak:
+     
     runs-on: ubuntu-20.04  # verified on ubuntu-20.04 and should run on any debian distro
     
-    - name: install Flatpak
+    steps:
+    - uses: actions/checkout@v2 
+    - name: Install Flatpak
       run: >
-        sudo apt install flatpak gnome-software-plugin-flatpak && flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo && flatpak install flathub org.gnome.Platform//3.36 org.gnome.Sdk//3.36 org.flatpak.Builder
+        sudo apt install flatpak gnome-software-plugin-flatpak && flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+        flatpak install flathub org.gnome.Platform//3.36 org.gnome.Sdk//3.36 org.flatpak.Builder
       
-    - name: build Flatpak  # run command in an empty directory with org.flatpak.Gourmet.yml placed in it
+    - name: Build Flatpak  # run command in an empty directory with org.flatpak.Gourmet.yml placed in it
       run: |
         flatpak-builder build-dir org.flatpak.Gourmet.yml 
         
-    - name: run Flatpak  # run in same directory as buildFlatpak
+    - name: Run Flatpak  # run in same directory as buildFlatpak
       run: |
         flatpak-builder --run --socket=fallback-x11 build-dir org.flatpak.Gourmet.yml gourmet
      

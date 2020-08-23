@@ -1,16 +1,16 @@
 import os.path
+from pathlib import Path
 import sys
 
 # The following lines are modified at installation time by setup.py so they
 # point to the actual data files installation paths.
 
-base_dir = os.path.join(os.path.dirname(__file__), '..')
-lib_dir = os.path.join(base_dir, 'gourmet')
-data_dir = os.path.join(base_dir, 'data')
-ui_base = os.path.join(base_dir, 'ui')
-doc_base = os.path.join(base_dir)
-locale_base = os.path.join(base_dir, 'build', 'mo')
-plugin_base = os.path.join(base_dir, 'build', 'share', 'gourmet')
+lib_dir = Path('gourmet')
+data_dir = Path('data')
+ui_base = Path('ui')
+doc_base = Path('..')  # TODO: clean
+locale_base = Path('../build/mo')  # TODO: clean
+plugin_base = Path('../build/share/gourmet')  # TODO: clean
 
 # Apologies for the formatting -- something in the build process is
 # getting rid of indentations in this file which throws a syntax error

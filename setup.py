@@ -285,6 +285,9 @@ class build_py(distutils.command.build_py.build_py):
                 elif "locale_base = " in line:
                     line = "locale_base = '%s'\n" % \
                         op.join(base, 'locale')
+                elif "ui_base = " in line:
+                    line = "ui_base = '%s'\n" % \
+                        op.join(base, 'gourmet', 'ui')
                 elif "plugin_base = " in line:
                     line = "plugin_base = data_dir\n"
                 print(line, end='')

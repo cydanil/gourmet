@@ -17,44 +17,43 @@ class PreferencesGui (plugin_loader.Pluggable):
     CARD_PAGE = 1
     SHOP_PAGE = 2
 
-    def __init__ (
-        self,
-        prefs,
-        uifile=os.path.join(gglobals.uibase,
-                            'preferenceDialog.ui'),
-        radio_options={'shop_handle_optional':{'optional_ask':0,
-                                               'optional_add':1,
-                                               'optional_dont_add':-1
-                                               }
-                       },
-        toggle_options={'remember_optionals_by_default':'remember_optionals_by_default',
-                        'readableUnits':'toggle_readable_units',
-                        'useFractions':'useFractions',
-                        'showToolbar':'show_toolbar',
-                        #'email_include_body':'email_body_checkbutton',
-                        #'email_include_html':'email_html_checkbutton',
-                        #'emailer_dont_ask':'remember_email_checkbutton',
-                        },
-
-        number_options = {'recipes_per_page':'recipesPerPageSpinButton'},
-
-        buttons = {}
-        #buttons = {'clear_remembered_optional_button':
-        ):
-        """Set up our PreferencesGui
-
-        uifile points us to our UI file
+    def __init__(self,
+                 prefs,
+                 uifile=os.path.join(gglobals.uibase, 'preferenceDialog.ui'),
+                 radio_options=None,
+                 toggle_options=None,
+                 number_options=None,
+                 buttons=None):
+        """Set up the PreferencesGui
 
         radio_options is a dictionary of preferences controlled by radio buttons.
                       {preference_name: {radio_widget: value,
                                          radio_widget: value, ...}
                                          }
 
-        toggle_options is a dictionary of preferences controlled by toggle buttons.
-                      {preference_name: toggle_widget_name}
-        buttons = {button_name : callback}
-
+        toggle_options is a dictionary of preferences controlled by toggle
+        buttons: {preference_name: toggle_widget_name}
         """
+        if radio_options is None:
+            radio_options = {'shop_handle_optional': {'optional_ask': 0,
+                                                      'optional_add': 1,
+                                                      'optional_dont_add': -1,
+                                                      }
+                             }
+        if toggle_options is None:
+            toggle_options = {
+                'remember_optionals_by_default': 'remember_optionals_by_default',
+                'readableUnits': 'toggle_readable_units',
+                'useFractions': 'useFractions',
+                'showToolbar': 'show_toolbar',
+                # 'email_include_body':'email_body_checkbutton',
+                # 'email_include_html':'email_html_checkbutton',
+                # 'emailer_dont_ask':'remember_email_checkbutton',
+            }
+
+        if number_options is None:
+            number_options = {'recipes_per_page':'recipesPerPageSpinButton'}
+        buttons = buttons if buttons else {}
 
         self.prefs = prefs
         self.ui = Gtk.Builder()
@@ -240,31 +239,3 @@ class PreferencesGui (plugin_loader.Pluggable):
                 if cb: cb(table.options)
                 return
         print("Oops: we couldn't handle widget %s"%widget)
-
-if __name__ == '__main__':
-    class FauxPrefs (dict):
-        def __init__ (self,*args,**kwargs):
-            self.set_hooks = []
-            dict.__init__(self,*args,**kwargs)
-
-        def __setitem__ (self,k,v):
-            print('k:',k)
-            print('v:',v)
-            dict.__setitem__(self,k,v)
-            for h in self.set_hooks:
-                print('runnnig hook')
-                h(k,v)
-
-    gf='/home/tom/Projects/grm-db-experiments/glade/preferenceDialog.ui'
-    import sys
-    p=PreferencesGui(FauxPrefs(),gf)
-    def printstuff (*args): print(args)
-    p.add_pref_table([["Toggle Option",True],
-                      ["String Option","Hello"],
-                      ["Integer Option",1],
-                      ["Float Option",float(3)]],
-                     'cardViewVBox',
-                     printstuff
-                     )
-    p.show_dialog()
-    Gtk.main()

@@ -1,14 +1,17 @@
-from . import plugin_loader
-from gi.repository import GObject, Gtk
-from .gtk_extras import dialog_extras as de
-from xml.sax.saxutils import escape
-from gettext import gettext as _
 from typing import Any, Optional
+
+from gettext import gettext as _
+from gi.repository import GObject, Gtk
+from xml.sax.saxutils import escape
+
+from gourmet.plugin_loader import DependencyError, MasterLoader
+from gourmet.gtk_extras import dialog_extras as de
+
 
 class PluginChooser:
 
     def __init__ (self):
-        self.loader = plugin_loader.get_master_loader()
+        self.loader = MasterLoader.instance()
         self.window = Gtk.Dialog()
         self.notebook = Gtk.Notebook()
         for cat,plugins in list(self.categorize_plugins().items()):
@@ -18,7 +21,8 @@ class PluginChooser:
             self.notebook.append_page(plugin_view,lab)
             plugin_view.show_all()
         self.add_labels()
-        self.window.vbox.add(self.notebook); self.notebook.show()
+        self.window.vbox.add(self.notebook)
+        self.notebook.show()
         self.window.add_buttons(
             #Gtk.STOCK_ABOUT,1, # TODO: find the description of plugins
             Gtk.STOCK_CLOSE,Gtk.ResponseType.CLOSE
@@ -62,8 +66,11 @@ class PluginChooser:
         return ls
 
     @staticmethod
-    def plugin_description_formatter(col: Gtk.TreeViewColumn, renderer: Gtk.CellRendererText,
-                                     mod: Gtk.ListStore, itr: Gtk.TreeIter, data: Any) -> None:
+    def plugin_description_formatter(col: Gtk.TreeViewColumn,
+                                     renderer: Gtk.CellRendererText,
+                                     mod: Gtk.ListStore,
+                                     itr: Gtk.TreeIter,
+                                     data: Any):
         """ Format plugin name and description in the plugin window
         """
         plugin_set = mod[itr][1]
@@ -107,7 +114,7 @@ class PluginChooser:
             if state:
                 try:
                     self.loader.check_dependencies(plugin_set)
-                except plugin_loader.DependencyError as dep_error:
+                except DependencyError as dep_error:
                     print('Missing dependencies:',dep_error.dependencies)
                     for row in ls:
                         ps = row[1]

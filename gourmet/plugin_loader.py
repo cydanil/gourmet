@@ -1,5 +1,7 @@
 PRE = 0
 POST = 1
+
+from typing import Any, Dict
 from gourmet import gglobals
 import os.path, glob, sys
 from . import plugin
@@ -21,11 +23,6 @@ except:
 # name and comment for the plugin.
 
 class MasterLoader:
-
-    # Singleton design pattern lifted from:
-    # http://www.python.org/workshops/1997-10/proceedings/savikko.html
-    # to get an instance, use the convenience function
-    # get_master_loader()
     __single = None
     default_active_plugin_sets = [
         # tools
@@ -46,7 +43,8 @@ class MasterLoader:
         'mycookbook_plugin',
         'epub_plugin',
         ]
-    active_plugin_filename = os.path.join(gglobals.gourmetdir,'active_plugins')
+    active_plugin_filename = os.path.join(gglobals.gourmetdir,
+                                          'active_plugins')
 
     @classmethod
     def instance(cls):
@@ -66,6 +64,7 @@ class MasterLoader:
         self.pluggables_by_class = {}
         self.load_plugin_directories()
         self.load_active_plugins()
+        self.available_plugin_sets: Dict[str: Any] = {}
 
     def load_plugin_directories (self):
         """Look through plugin directories for plugins.
@@ -82,7 +81,7 @@ class MasterLoader:
                 else:
                     self.available_plugin_sets[plugin_set.module] = plugin_set
 
-    def load_active_plugins (self):
+    def load_active_plugins(self):
         """Activate plugins that have been activated on startup
         """
         if os.path.exists(self.active_plugin_filename):
@@ -94,16 +93,11 @@ class MasterLoader:
         self.instantiated_plugins = {}
         for p in self.active_plugin_sets:
             if p in self.available_plugin_sets:
-                try:
-                    self.active_plugins.extend(self.available_plugin_sets[p].plugins)
-                except:
-                    import logging
-                    import traceback
-                    print('WARNING: Failed to load plugin %s'%p)
-                    self.errors[p] = traceback.format_exc()
-                    logging.exception('')
+                module = self.available_plugin_sets[p]
+                if module.plugins is not None:
+                    self.active_plugins.extend(module.plugins)
             else:
-                print('Plugin ',p,'not found')
+                print('Plugin', p, 'not found')
 
 
     def save_active_plugins (self):
@@ -219,8 +213,6 @@ class MasterLoader:
     def unregister_pluggable (self, pluggable, klass):
         self.pluggables_by_class[klass].remove(pluggable)
 
-def get_master_loader ():
-    return MasterLoader.instance()
 
 class PluginSet:
     """A lazy-loading set of plugins.
@@ -260,7 +252,7 @@ class PluginSet:
                 self._loaded = __import__(self.module)
                 #print 'Loaded plugin set',self._loaded
                 #print 'plugins=',self._loaded.plugins
-            except ImportError as ie:
+            except (ImportError, ValueError) as ie:
                 print('WARNING: Plugin module import failed')
                 print('PATH:',sys.path)
                 import traceback; traceback.print_exc()
@@ -269,14 +261,17 @@ class PluginSet:
             else:
                 return self._loaded
 
-    def __getattr__ (self, attr):
-        if attr == 'plugins': return self.get_plugins()
-        elif attr in self.props: return self.props[attr]
-        elif attr.capitalize() in self.props: return self.props[attr.capitalize()]
-        else: raise AttributeError
-
-    def get_plugins (self):
-        return self.get_module().plugins
+    def __getattr__(self, attr):
+        if attr == 'plugins':
+            module = self.get_module()
+            if module:
+                return module.plugins
+        elif attr in self.props:
+            return self.props[attr]
+        elif attr.capitalize() in self.props:
+            return self.props[attr.capitalize()]
+        else:
+            raise AttributeError
 
     def load_plugin_file_data (self,plugin_info_file):
         # This should really use GKeyFile but there are no python
@@ -319,7 +314,7 @@ class Pluggable:
                             # method name
         self.post_hooks = {} # stores hooks to be run after methods by
                              # method name
-        self.loader = get_master_loader()
+        self.loader = MasterLoader.instance()
         self.klasses = plugin_klasses
         self.plugins = []
         for klass in self.klasses:

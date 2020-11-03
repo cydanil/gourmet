@@ -1,12 +1,13 @@
+import webbrowser
 from gettext import gettext as _
 from typing import List
-import webbrowser
 
 from gi.repository import Gtk
 
 from gourmet.backends.db import RecData
+from gourmet.convert import seconds_to_timestring
 from gourmet.gtk_extras.dialog_extras import getBoolean
-from gourmet.plugin import UIPlugin, MainPlugin
+from gourmet.plugin import MainPlugin, UIPlugin
 
 
 class EmailRecipePlugin(MainPlugin, UIPlugin):
@@ -49,15 +50,26 @@ class EmailRecipePlugin(MainPlugin, UIPlugin):
         webbrowser.open(mailto_link)
 
     @staticmethod
+    def join_ingredients(ingredients: List) -> str:
+        template = r'{amount} {unit} {item}'
+        ret = ''
+        for ingredient in ingredients:
+            ret += template.format(amount=ingredient.amount,
+                                   unit=ingredient.unit,
+                                   item=ingredient.item)
+            ret += '\n'
+        return ret
+
+    @staticmethod
     def format_recipes(recipes: List[str]) -> str:
         link = r"mailto://?subject={subject}&body={body}"
         template = r"""
 # {title}
 
 rating: {rating}
-preparation: {preptime}
-cooking: {cooktime}
-makes: {yields} {yields_unit}
+preparation time: {preptime}
+cooking time: {cooktime}
+makes: {yields} {yield_unit}
 source: {source}
 
 ## Ingredients
@@ -68,16 +80,26 @@ source: {source}
 """
         db = RecData.instance_for()
         if len(recipes) == 1:
-            subject = recipes[0]['title']
+            subject = recipes[0].title
         else:
             subject = "Gourmet Recipes"
 
         body = ""
         for recipe in recipes:
-            ingredients = db.get_ings(recipe['id'])
-            source = recipe['source'] if recipe['source'] else recipe['link']
+            ingredients = db.get_ings(recipe.id)
+            ingredients = EmailRecipePlugin.join_ingredients(ingredients)
+            source = recipe.source if recipe.source else recipe.link
+            preptime = seconds_to_timestring(recipe.preptime)
+            cooktime = seconds_to_timestring(recipe.cooktime)
 
-            body += template.format(ingredients=ingredients,
+            body += template.format(title=recipe.title,
+                                    rating=recipe.rating,
+                                    preptime=preptime,
+                                    cooktime=cooktime,
+                                    yields=recipe.yields,
+                                    yield_unit=recipe.yield_unit,
+                                    ingredients=ingredients,
+                                    instructions=recipe.instructions,
                                     source=source)
             body += "\n"
         return link.format(subject=subject, body=body)

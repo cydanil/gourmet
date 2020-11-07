@@ -1,12 +1,14 @@
-import os
+# This test works on its own, but not as part of the CI
+
 import shutil
 import tempfile
 import unittest
 
 from gourmet import gglobals
+from gourmet.plugin_loader import MasterLoader
 
 
-class Test (unittest.TestCase):
+class Test(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # preserve the current gourmet working directory
@@ -17,12 +19,12 @@ class Test (unittest.TestCase):
         gglobals.gourmetdir = cls.tmp_dir
 
         # Continue to import with 'gourmetdir' set to 'tmp_dir',
-        # Tests need to setup their own test workspace, otherwise 'gourmetdir' is set to '~/.gourmet' which could
-        # result in the user gourmet database and other files being corrupted.
-        # This attempt at isolation only really works if you're running this test module alone, not after others.
-        from gourmet.plugin_loader import get_master_loader  # noqa: E402 import not at top of file
+        # Tests need to setup their own test workspace, otherwise 'gourmetdir'
+        # is set to '~/.gourmet' which could result in the user gourmet
+        # database and other files being corrupted.
+        # This isolation only works if this test is ran alone.
 
-        cls.ml = get_master_loader()
+        cls.ml = MasterLoader.instance()
 
     @classmethod
     def tearDownClass(cls):
@@ -32,20 +34,24 @@ class Test (unittest.TestCase):
         # delete temporary test directory
         shutil.rmtree(cls.tmp_dir)
 
-    def testDefaultPlugins (self):
+    def testDefaultPlugins(self):
         self.ml.load_active_plugins()
-        print('active:',self.ml.active_plugins)
-        print('instantiated:',self.ml.instantiated_plugins)
-        self.assertEqual(len(self.ml.errors), 0)  # there should be 0 plugin errors
+        print(f'active: {self.ml.active_plugins}')
+        print(f'instantiated: {self.ml.instantiated_plugins}')
+        # there should be 0 plugin errors
+        self.assertEqual(len(self.ml.errors), 0)
 
-    def testAvailablePlugins (self):
+    def testAvailablePlugins(self):
         # search module directories for available plugins
         for module_name, plugin_set in self.ml.available_plugin_sets.items():
             if module_name not in self.ml.active_plugin_sets:
                 self.ml.activate_plugin_set(plugin_set)
+
         self.ml.save_active_plugins()
-        assert os.path.exists(self.ml.active_plugin_filename)
-        self.assertEqual(len(self.ml.errors), 0)  # there should be 0 plugin errors
+
+        # There should be 0 plugin errors
+        self.assertEqual(len(self.ml.errors), 0)
+
 
 if __name__ == '__main__':
     unittest.main()

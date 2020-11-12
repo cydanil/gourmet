@@ -8,6 +8,7 @@ finish-args:
   - --filesystem=host
   - --socket=fallback-x11
   - --socket=pulseaudio
+  - --socket=cups
   - --share=network
 modules:
   - name: poppler
